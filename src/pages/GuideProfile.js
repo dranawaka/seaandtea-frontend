@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, MapPin, Clock, DollarSign, Award, Languages, Star, Save, Edit3, X, Plus, Trash2 } from 'lucide-react';
-import { buildApiUrl, API_CONFIG } from '../config/api';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import GuideDashboard from '../components/GuideDashboard';
 
@@ -50,12 +50,18 @@ const GuideProfile = () => {
 
   const loadGuideProfile = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DETAIL.replace(':id', 'me')), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DETAIL.replace(':id', 'me'));
+      console.log(`🚀 Loading guide profile: ${url}`);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Log the API call
+      logApiCall('GET', url, null, response);
 
       if (response.ok) {
         const data = await response.json();
@@ -81,12 +87,18 @@ const GuideProfile = () => {
 
   const loadGuideTours = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST);
+      console.log(`🚀 Loading guide tours: ${url}`);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Log the API call
+      logApiCall('GET', url, null, response);
 
       if (response.ok) {
         const data = await response.json();

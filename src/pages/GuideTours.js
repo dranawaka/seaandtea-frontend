@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit3, Trash2, Eye, Calendar, MapPin, DollarSign, Users, Clock, Star, Search, Filter, X } from 'lucide-react';
-import { buildApiUrl, API_CONFIG } from '../config/api';
+import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const GuideTours = () => {
@@ -51,12 +51,18 @@ const GuideTours = () => {
 
   const loadTours = async () => {
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST);
+      console.log(`🚀 Loading tours for guide ${user?.id} from: ${url}`);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Log the API call
+      logApiCall('GET', url, null, response);
 
       if (response.ok) {
         const data = await response.json();
@@ -154,18 +160,26 @@ const GuideTours = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
+      const tourData = {
+        ...tourForm,
+        maxGroupSize: parseInt(tourForm.maxGroupSize),
+        price: parseFloat(tourForm.price)
+      };
+      
+      console.log(`🚀 Creating tour: ${url}`, tourData);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...tourForm,
-          maxGroupSize: parseInt(tourForm.maxGroupSize),
-          price: parseFloat(tourForm.price)
-        })
+        body: JSON.stringify(tourData)
       });
+
+      // Log the API call
+      logApiCall('POST', url, tourData, response);
 
       const data = await response.json();
 
@@ -199,18 +213,26 @@ const GuideTours = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE.replace(':id', selectedTour.id)), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE.replace(':id', selectedTour.id));
+      const tourData = {
+        ...tourForm,
+        maxGroupSize: parseInt(tourForm.maxGroupSize),
+        price: parseFloat(tourForm.price)
+      };
+      
+      console.log(`🚀 Updating tour ${selectedTour.id}: ${url}`, tourData);
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...tourForm,
-          maxGroupSize: parseInt(tourForm.maxGroupSize),
-          price: parseFloat(tourForm.price)
-        })
+        body: JSON.stringify(tourData)
       });
+
+      // Log the API call
+      logApiCall('PUT', url, tourData, response);
 
       const data = await response.json();
 
@@ -243,12 +265,18 @@ const GuideTours = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DELETE.replace(':id', tourId)), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DELETE.replace(':id', tourId));
+      console.log(`🚀 Deleting tour ${tourId}: ${url}`);
+      
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Log the API call
+      logApiCall('DELETE', url, null, response);
 
       if (!response.ok) {
         const data = await response.json();

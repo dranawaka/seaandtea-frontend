@@ -66,7 +66,9 @@ export const buildApiUrl = (endpoint, params = {}) => {
   Object.keys(params).forEach(key => {
     url = url.replace(`:${key}`, params[key]);
   });
-  return `${API_CONFIG.BASE_URL}${url}`;
+  const fullUrl = `${API_CONFIG.BASE_URL}${url}`;
+  console.log(`🌐 API URL Built: ${fullUrl}`);
+  return fullUrl;
 };
 
 // Default headers for API requests
@@ -79,5 +81,37 @@ export const getDefaultHeaders = (includeAuth = false, token = null) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   
+  console.log(`📋 API Headers:`, headers);
   return headers;
+};
+
+// Utility function to log API requests and responses
+export const logApiCall = (method, url, requestData = null, response = null, error = null) => {
+  const timestamp = new Date().toISOString();
+  
+  if (requestData) {
+    console.log(`🚀 [${timestamp}] API REQUEST:`, {
+      method,
+      url,
+      data: requestData
+    });
+  }
+  
+  if (response) {
+    console.log(`✅ [${timestamp}] API RESPONSE:`, {
+      method,
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data || response
+    });
+  }
+  
+  if (error) {
+    console.log(`❌ [${timestamp}] API ERROR:`, {
+      method,
+      url,
+      error: error.message || error
+    });
+  }
 };

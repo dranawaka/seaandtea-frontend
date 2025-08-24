@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
-import { buildApiUrl, API_CONFIG } from '../config/api';
+import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -72,6 +72,9 @@ const Login = () => {
           password: formData.password
         }),
       });
+
+      // Log the API call
+      logApiCall('POST', buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN), { email: formData.email, password: '[HIDDEN]' }, response);
 
       const data = await response.json();
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, MapPin, Lock, Eye, EyeOff, Save, Edit3, X } from 'lucide-react';
-import { buildApiUrl, API_CONFIG } from '../config/api';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign, Lock } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const UserProfile = () => {
@@ -151,19 +151,27 @@ const UserProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.USERS.UPDATE_PROFILE), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.USERS.UPDATE_PROFILE);
+      const profileUpdateData = {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+        nationality: profileData.nationality
+      };
+      
+      console.log(`🚀 Updating user profile: ${url}`, profileUpdateData);
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          phone: profileData.phone,
-          nationality: profileData.nationality
-        })
+        body: JSON.stringify(profileUpdateData)
       });
+
+      // Log the API call
+      logApiCall('PUT', url, profileUpdateData, response);
 
       const data = await response.json();
 
@@ -199,17 +207,25 @@ const UserProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.USERS.CHANGE_PASSWORD), {
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.USERS.CHANGE_PASSWORD);
+      const passwordUpdateData = {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      };
+      
+      console.log(`🚀 Changing password: ${url}`, { ...passwordUpdateData, newPassword: '[HIDDEN]' });
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
+        body: JSON.stringify(passwordUpdateData)
       });
+
+      // Log the API call
+      logApiCall('PUT', url, { ...passwordUpdateData, newPassword: '[HIDDEN]' }, response);
 
       const data = await response.json();
 
