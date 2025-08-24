@@ -89,9 +89,6 @@ const Login = () => {
         // Use the auth context to handle login
         login(data.user || {}, authToken);
         
-        // Show success message
-        alert('Login successful! Welcome back!');
-        
         // Redirect to home page or dashboard
         navigate('/');
       } else {

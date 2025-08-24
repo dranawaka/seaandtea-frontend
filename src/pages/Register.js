@@ -136,8 +136,7 @@ const Register = () => {
       // Registration successful
       console.log('Registration successful:', data);
       
-      // Show success message and redirect to login
-      alert('Registration successful! Please log in with your new account.');
+      // Redirect to login page
       navigate('/login');
       
     } catch (error) {
