@@ -1,7 +1,7 @@
 // API Configuration
-// Swagger UI: http://localhost:8080/api/v1/swagger-ui/index.html
+// Swagger UI: https://seaandtea-backend-production.up.railway.app/api/v1/swagger-ui/index.html
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api/v1',
+  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://seaandtea-backend-production.up.railway.app/api/v1',
   TIMEOUT: 10000, // 10 seconds
   ENDPOINTS: {
     AUTH: {
