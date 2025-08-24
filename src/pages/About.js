@@ -29,16 +29,16 @@ const About = () => {
 
   const team = [
     {
-      name: 'Sarah Johnson',
-      role: 'Founder & CEO',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      bio: 'Former travel journalist with 15+ years of experience exploring the world and connecting with local communities.'
+      name: 'Dilan Ranawaka',
+      role: 'Co-CEO & CTO',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+      bio: 'Technology leader and entrepreneur with expertise in building scalable platforms and digital solutions for the travel industry.'
     },
     {
-      name: 'Michael Chen',
-      role: 'Head of Operations',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      bio: 'Tourism management expert with a passion for creating sustainable and meaningful travel experiences.'
+      name: 'Sarah Johnson',
+      role: 'Co-CEO & Head of Operations',
+      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+      bio: 'Former travel journalist with 15+ years of experience exploring the world and connecting with local communities.'
     },
     {
       name: 'Elena Rodriguez',
