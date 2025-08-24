@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign, Plus, Award } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import GuideDashboard from '../components/GuideDashboard';
