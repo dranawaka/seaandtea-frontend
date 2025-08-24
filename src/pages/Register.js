@@ -115,7 +115,8 @@ const Register = () => {
         lastName: formData.lastName,
         phone: formData.phone,
         dateOfBirth: formData.dateOfBirth,
-        nationality: formData.nationality
+        nationality: formData.nationality,
+        userType: formData.userType
       };
 
       const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.REGISTER), {
