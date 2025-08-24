@@ -35,7 +35,7 @@ const About = () => {
       bio: 'Technology leader and entrepreneur with expertise in building scalable platforms and digital solutions for the travel industry.'
     },
     {
-      name: 'Sarah Johnson',
+      name: 'Kasun Rathnayaka',
       role: 'Co-CEO & Head of Operations',
       image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
       bio: 'Former travel journalist with 15+ years of experience exploring the world and connecting with local communities.'
