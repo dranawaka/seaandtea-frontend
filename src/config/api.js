@@ -1,7 +1,7 @@
 // API Configuration
 // Swagger UI: http://localhost:8080/api/v1/swagger-ui/index.html
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api/v1',
+  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://industrious-gratitude-production-dfe4.up.railway.app/api/v1',
   TIMEOUT: 10000, // 10 seconds
   ENDPOINTS: {
     AUTH: {
@@ -12,7 +12,9 @@ export const API_CONFIG = {
     },
     USERS: {
       PROFILE: '/users/profile',
-      UPDATE_ROLE: '/users/role'
+      UPDATE_ROLE: '/users/role',
+      UPDATE_PROFILE: '/users/profile',
+      CHANGE_PASSWORD: '/users/password'
     },
     GUIDES: {
       LIST: '/guides',
