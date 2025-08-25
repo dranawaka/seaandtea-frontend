@@ -207,7 +207,7 @@ const Guides = () => {
                   <div className="flex flex-wrap gap-2">
                     {guide.languages.map((language, index) => (
                       <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">
-                        {language}
+                        {typeof language === 'string' ? language : language.language || 'Unknown Language'}
                       </span>
                     ))}
                   </div>
@@ -218,7 +218,7 @@ const Guides = () => {
                   <div className="flex flex-wrap gap-2">
                     {guide.specialties.map((specialty, index) => (
                       <span key={index} className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs">
-                        {specialty}
+                        {typeof specialty === 'string' ? specialty : specialty.specialty || 'Unknown Specialty'}
                       </span>
                     ))}
                   </div>

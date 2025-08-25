@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign, Lock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign, Lock, Award, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,13 +13,29 @@ const UserProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
+  // Guide profile state
+  const [guideData, setGuideData] = useState(null);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     dateOfBirth: '',
-    nationality: ''
+    nationality: '',
+    location: ''
+  });
+  
+  // Guide profile form data
+  const [guideFormData, setGuideFormData] = useState({
+    bio: '',
+    hourlyRate: '',
+    dailyRate: '',
+    responseTimeHours: 24,
+    isAvailable: true,
+    specialties: [],
+    languages: []
   });
   
   const [passwordData, setPasswordData] = useState({
@@ -29,6 +45,7 @@ const UserProfile = () => {
   });
   
   const [errors, setErrors] = useState({});
+  const [guideErrors, setGuideErrors] = useState({});
 
   // Load user data on component mount
   useEffect(() => {
@@ -39,8 +56,14 @@ const UserProfile = () => {
         email: user.email || '',
         phone: user.phone || '',
         dateOfBirth: user.dateOfBirth || '',
-        nationality: user.nationality || ''
+        nationality: user.nationality || '',
+        location: user.location || ''
       });
+      
+      // Load guide profile if user is a guide
+      if (user.role === 'GUIDE') {
+        loadGuideProfile();
+      }
     }
   }, [user]);
 
@@ -50,6 +73,77 @@ const UserProfile = () => {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // Load guide profile from backend
+  const loadGuideProfile = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First, check if the user has a guide profile
+      const existsUrl = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.PROFILE_EXISTS);
+      
+      const existsResponse = await fetch(existsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (existsResponse.ok) {
+        const existsData = await existsResponse.json();
+        
+        // Check if profile exists - handle different response structures
+        const profileExists = existsData.exists === true || existsData.guideId || existsData.id;
+        const guideId = existsData.guideId || existsData.id;
+        
+        if (profileExists && guideId) {
+          // Profile exists, load it
+          const profileUrl = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DETAIL.replace(':id', guideId));
+          
+          const profileResponse = await fetch(profileUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (profileResponse.ok) {
+            const data = await profileResponse.json();
+            setGuideData(data);
+            setVerificationStatus(data.verificationStatus || 'PENDING');
+            
+            // Map backend data to frontend state
+            setGuideFormData({
+              bio: data.bio || '',
+              hourlyRate: data.hourlyRate || data.rate?.hourly || '',
+              dailyRate: data.dailyRate || data.rate?.daily || '',
+              responseTimeHours: data.responseTimeHours || data.responseTime || 24,
+              isAvailable: data.isAvailable !== false,
+              specialties: Array.isArray(data.specialties) ? data.specialties.map(s => typeof s === 'string' ? s : s.specialty || '').filter(Boolean) : [],
+              languages: Array.isArray(data.languages) ? data.languages.map(l => typeof l === 'string' ? l : l.language || '').filter(Boolean) : []
+            });
+          }
+        } else {
+          // Profile doesn't exist, set default values
+          setGuideFormData({
+            bio: '',
+            hourlyRate: '',
+            dailyRate: '',
+            responseTimeHours: 24,
+            isAvailable: true,
+            specialties: ['Cultural Tours'],
+            languages: ['English']
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading guide profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -65,6 +159,40 @@ const UserProfile = () => {
         [name]: ''
       }));
     }
+  };
+
+  // Guide form handling
+  const handleGuideFormChange = (field, value) => {
+    setGuideFormData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error for this field
+    if (guideErrors[field]) {
+      setGuideErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  // Handle array field changes (specialties, languages)
+  const handleArrayChange = (field, index, value) => {
+    setGuideFormData(prev => {
+      const newArray = [...prev[field]];
+      newArray[index] = value;
+      return { ...prev, [field]: newArray };
+    });
+  };
+
+  // Add new item to array field
+  const addArrayItem = (field) => {
+    setGuideFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field], '']
+    }));
+  };
+
+  // Remove item from array field
+  const removeArrayItem = (field, index) => {
+    setGuideFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index)
+    }));
   };
 
   const handlePasswordChange = (e) => {
@@ -111,6 +239,10 @@ const UserProfile = () => {
       newErrors.nationality = 'Nationality is required';
     }
 
+    if (!profileData.location?.trim()) {
+      newErrors.location = 'Location is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -140,6 +272,38 @@ const UserProfile = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Validate guide profile data
+  const validateGuideProfile = () => {
+    const newErrors = {};
+
+    if (!guideFormData.bio?.trim()) {
+      newErrors.bio = 'Bio is required';
+    } else if (guideFormData.bio.length < 50) {
+      newErrors.bio = 'Bio must be at least 50 characters';
+    }
+
+    if (!guideFormData.hourlyRate) {
+      newErrors.hourlyRate = 'Hourly rate is required';
+    } else if (parseFloat(guideFormData.hourlyRate) <= 0) {
+      newErrors.hourlyRate = 'Hourly rate must be greater than 0';
+    }
+
+    if (guideFormData.specialties.length === 0) {
+      newErrors.specialties = 'At least one specialty is required';
+    } else if (guideFormData.specialties.some(s => !s.trim())) {
+      newErrors.specialties = 'All specialties must have values';
+    }
+
+    if (guideFormData.languages.length === 0) {
+      newErrors.languages = 'At least one language is required';
+    } else if (guideFormData.languages.some(l => !l.trim())) {
+      newErrors.languages = 'All languages must have values';
+    }
+
+    setGuideErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     
@@ -156,7 +320,8 @@ const UserProfile = () => {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         phone: profileData.phone,
-        nationality: profileData.nationality
+        nationality: profileData.nationality,
+        location: profileData.location
       };
       
       console.log(`🚀 Updating user profile: ${url}`, profileUpdateData);
@@ -191,6 +356,84 @@ const UserProfile = () => {
 
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Submit guide profile
+  const handleGuideProfileSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateGuideProfile()) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setMessage({ type: '', text: '' });
+
+      // Prepare request body - aligned with backend API
+      const requestBody = {
+        bio: guideFormData.bio.trim(),
+        hourlyRate: parseFloat(guideFormData.hourlyRate),
+        dailyRate: guideFormData.dailyRate ? parseFloat(guideFormData.dailyRate) : null,
+        responseTimeHours: parseInt(guideFormData.responseTimeHours),
+        isAvailable: guideFormData.isAvailable,
+        // Map specialties to the expected format
+        specialties: guideFormData.specialties.filter(s => s.trim()).map(specialty => ({
+          specialty: specialty.trim(),
+          yearsExperience: 1, // Default value
+          certificationUrl: null
+        })),
+        // Map languages to the expected format
+        languages: guideFormData.languages.filter(l => l.trim()).map(language => ({
+          language: language.trim(),
+          proficiencyLevel: 'FLUENT' // Default value
+        }))
+      };
+
+      let url, method;
+      if (guideData && guideData.id) {
+        // Update existing profile
+        url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.UPDATE.replace(':id', guideData.id));
+        method = 'PUT';
+      } else {
+        // Create new profile
+        url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.CREATE);
+        method = 'POST';
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to save guide profile');
+      }
+
+      if (guideData) {
+        setMessage({ type: 'success', text: 'Guide profile updated successfully!' });
+      } else {
+        setMessage({ type: 'success', text: 'Guide profile created successfully! It will be reviewed for verification within 1-2 business days.' });
+      }
+      
+      setGuideData(data);
+      setVerificationStatus(data.verificationStatus || 'PENDING');
+      setIsEditing(false);
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to save guide profile' });
     } finally {
       setIsLoading(false);
     }
@@ -258,7 +501,8 @@ const UserProfile = () => {
         email: user.email || '',
         phone: user.phone || '',
         dateOfBirth: user.dateOfBirth || '',
-        nationality: user.nationality || ''
+        nationality: user.nationality || '',
+        location: user.location || ''
       });
     }
   };
@@ -304,7 +548,7 @@ const UserProfile = () => {
           {/* Profile Information */}
           <div className="lg:col-span-2">
             <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-5 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
                   {!isEditing && (
@@ -319,92 +563,92 @@ const UserProfile = () => {
                 </div>
               </div>
 
-              <div className="px-6 py-4">
+              <div className="px-6 py-6">
                 {isEditing ? (
-                  <form onSubmit={handleProfileSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <form onSubmit={handleProfileSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
                         <input
                           type="text"
                           name="firstName"
                           value={profileData.firstName}
                           onChange={handleProfileChange}
-                          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                             errors.firstName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
                         {errors.firstName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                          <p className="mt-2 text-sm text-red-600">{errors.firstName}</p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
                         <input
                           type="text"
                           name="lastName"
                           value={profileData.lastName}
                           onChange={handleProfileChange}
-                          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                             errors.lastName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
                         {errors.lastName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                          <p className="mt-2 text-sm text-red-600">{errors.lastName}</p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                         <input
                           type="email"
                           value={profileData.email}
                           disabled
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
+                          className="block w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
                         />
-                        <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+                        <p className="mt-2 text-xs text-gray-500">Email cannot be changed</p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Phone *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
                         <input
                           type="tel"
                           name="phone"
                           value={profileData.phone}
                           onChange={handleProfileChange}
-                          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                             errors.phone ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
                         {errors.phone && (
-                          <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                          <p className="mt-2 text-sm text-red-600">{errors.phone}</p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
                         <input
                           type="date"
                           name="dateOfBirth"
                           value={profileData.dateOfBirth}
                           onChange={handleProfileChange}
-                          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                             errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
                         {errors.dateOfBirth && (
-                          <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
+                          <p className="mt-2 text-sm text-red-600">{errors.dateOfBirth}</p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Nationality *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Nationality *</label>
                         <select
                           name="nationality"
                           value={profileData.nationality}
                           onChange={handleProfileChange}
-                          className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                             errors.nationality ? 'border-red-500' : 'border-gray-300'
                           }`}
                         >
@@ -701,16 +945,33 @@ const UserProfile = () => {
                           <option value="GB">United Kingdom</option>
                         </select>
                         {errors.nationality && (
-                          <p className="mt-1 text-sm text-red-600">{errors.nationality}</p>
+                          <p className="mt-2 text-sm text-red-600">{errors.nationality}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={profileData.location}
+                          onChange={handleProfileChange}
+                          className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                            errors.location ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="City, Country"
+                        />
+                        {errors.location && (
+                          <p className="mt-2 text-sm text-red-600">{errors.location}</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex justify-end space-x-3 pt-4">
+                    <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                       <button
                         type="button"
                         onClick={cancelEdit}
-                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        className="px-4 py-2.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                       >
                         <X className="h-4 w-4 mr-2 inline" />
                         Cancel
@@ -718,7 +979,7 @@ const UserProfile = () => {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                        className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
                       >
                         {isLoading ? (
                           <>
@@ -785,9 +1046,367 @@ const UserProfile = () => {
                         <p className="text-sm text-gray-900">{profileData.nationality}</p>
                       </div>
                     </div>
+
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Location</p>
+                        <p className="text-sm text-gray-900">{profileData.location || 'Not set'}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {/* Guide Profile Section - Only for GUIDE users */}
+              {user && user.role === 'GUIDE' && (
+                <div className="border-t border-gray-200">
+                  <div className="px-6 py-5 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-900">Guide Profile</h3>
+                      {!isEditing && (
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          {guideData ? 'Edit Guide Profile' : 'Create Guide Profile'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-6">
+                    {isEditing ? (
+                      <form onSubmit={handleGuideProfileSubmit} className="space-y-6">
+                        {/* Bio */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Bio *</label>
+                          <textarea
+                            name="bio"
+                            rows={4}
+                            value={guideFormData.bio}
+                            onChange={(e) => handleGuideFormChange('bio', e.target.value)}
+                            className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                              guideErrors.bio ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                            placeholder="Tell travelers about your experience, expertise, and what makes you a great guide..."
+                          />
+                          {guideErrors.bio && <p className="mt-2 text-sm text-red-600">{guideErrors.bio}</p>}
+                          <p className="mt-2 text-xs text-gray-500">Minimum 50 characters. Describe your guiding style and experience.</p>
+                        </div>
+
+                        {/* Rates */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Hourly Rate (USD) *</label>
+                            <input
+                              type="number"
+                              name="hourlyRate"
+                              value={guideFormData.hourlyRate}
+                              onChange={(e) => handleGuideFormChange('hourlyRate', e.target.value)}
+                              step="0.01"
+                              min="0"
+                              className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                                guideErrors.hourlyRate ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="25.00"
+                            />
+                            {guideErrors.hourlyRate && <p className="mt-2 text-sm text-red-600">{guideErrors.hourlyRate}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Daily Rate (USD) - Optional</label>
+                            <input
+                              type="number"
+                              name="dailyRate"
+                              value={guideFormData.dailyRate}
+                              onChange={(e) => handleGuideFormChange('dailyRate', e.target.value)}
+                              step="0.01"
+                              min="0"
+                              className="block w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="200.00"
+                            />
+                            <p className="mt-2 text-xs text-gray-500">Leave empty if you only offer hourly rates</p>
+                          </div>
+                        </div>
+
+                        {/* Response Time */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Response Time (hours)</label>
+                          <input
+                            type="number"
+                            name="responseTimeHours"
+                            value={guideFormData.responseTimeHours}
+                            onChange={(e) => handleGuideFormChange('responseTimeHours', e.target.value)}
+                            min="1"
+                            max="168"
+                            className="block w-full px-3 py-2.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                          />
+                          <p className="mt-2 text-xs text-gray-500">How quickly you typically respond to booking requests</p>
+                        </div>
+
+                        {/* Specialties */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-3">Specialties *</label>
+                          <div className="space-y-3">
+                            {guideFormData.specialties.map((specialty, index) => (
+                              <div key={index} className="flex items-center space-x-3">
+                                <input
+                                  type="text"
+                                  value={specialty}
+                                  onChange={(e) => handleArrayChange('specialties', index, e.target.value)}
+                                  className={`flex-1 px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                                    guideErrors.specialties ? 'border-red-300' : 'border-gray-300'
+                                  }`}
+                                  placeholder="e.g., Cultural Tours, Wildlife Safaris"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeArrayItem('specialties', index)}
+                                  className="p-2.5 text-red-600 hover:text-red-800"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => addArrayItem('specialties')}
+                              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Specialty
+                            </button>
+                          </div>
+                          {guideErrors.specialties && <p className="mt-2 text-sm text-red-600">{guideErrors.specialties}</p>}
+                          <p className="mt-2 text-xs text-gray-500">Add your areas of expertise and tour specialties</p>
+                        </div>
+
+                        {/* Languages */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-3">Languages *</label>
+                          <div className="space-y-3">
+                            {guideFormData.languages.map((language, index) => (
+                              <div key={index} className="flex items-center space-x-3">
+                                <input
+                                  type="text"
+                                  value={language}
+                                  onChange={(e) => handleArrayChange('languages', index, e.target.value)}
+                                  className={`flex-1 px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                                    guideErrors.languages ? 'border-red-300' : 'border-gray-300'
+                                  }`}
+                                  placeholder="e.g., English, Sinhala, Tamil"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeArrayItem('languages', index)}
+                                  className="p-2.5 text-red-600 hover:text-red-800"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => addArrayItem('languages')}
+                              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Language
+                            </button>
+                          </div>
+                          {guideErrors.languages && <p className="mt-2 text-sm text-red-600">{guideErrors.languages}</p>}
+                          <p className="mt-2 text-xs text-gray-500">Languages you can guide tours in</p>
+                        </div>
+
+                        {/* Availability */}
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            name="isAvailable"
+                            checked={guideFormData.isAvailable}
+                            onChange={(e) => handleGuideFormChange('isAvailable', e.target.checked)}
+                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                          />
+                          <label className="ml-3 block text-sm text-gray-900">
+                            Available for new tour bookings
+                          </label>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(false)}
+                            className="px-4 py-2.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                {guideData ? 'Update Guide Profile' : 'Create Guide Profile'}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="space-y-6">
+                        {guideData ? (
+                          <>
+                            {/* Verification Status Display */}
+                            <div className="p-5 bg-gray-50 border border-gray-200 rounded-md">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  {verificationStatus === 'VERIFIED' ? (
+                                    <CheckCircle className="h-6 w-6 text-green-500" />
+                                  ) : (
+                                    <AlertCircle className="h-6 w-6 text-yellow-500" />
+                                  )}
+                                  <div>
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                      {verificationStatus === 'VERIFIED' ? 'Profile Verified' : 'Verification Pending'}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
+                                      {verificationStatus === 'VERIFIED' 
+                                        ? 'Your profile is visible to travelers and you can receive bookings'
+                                        : 'Your profile is under review and will be visible once verified'
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                    verificationStatus === 'VERIFIED' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {verificationStatus === 'VERIFIED' ? 'VERIFIED' : 'PENDING'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Basic Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-5">Basic Information</h3>
+                                <div className="space-y-5">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-500 mb-2">Bio</p>
+                                    <p className="text-gray-900">{guideData.bio}</p>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-3">
+                                    <DollarSign className="h-5 w-5 text-gray-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Hourly Rate</p>
+                                      <p className="text-gray-900">${guideData.hourlyRate || guideData.rate?.hourly}/hour</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {guideData.dailyRate || guideData.rate?.daily ? (
+                                    <div className="flex items-center space-x-3">
+                                      <DollarSign className="h-5 w-5 text-gray-400" />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">Daily Rate</p>
+                                        <p className="text-gray-900">${guideData.dailyRate || guideData.rate?.daily}/day</p>
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                  
+                                  <div className="flex items-center space-x-3">
+                                    <Clock className="h-5 w-5 text-gray-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Response Time</p>
+                                      <p className="text-gray-900">{guideData.responseTimeHours || guideData.responseTime} hours</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-5">Professional Details</h3>
+                                <div className="space-y-5">
+                                  <div className="flex items-center space-x-3">
+                                    <Users className="h-5 w-5 text-gray-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Total Tours</p>
+                                      <p className="text-gray-900">{guideData.totalTours || 0}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-3">
+                                    <Star className="h-5 w-5 text-gray-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-500">Rating</p>
+                                      <p className="text-gray-900">{guideData.averageRating || 0} ({guideData.totalReviews || 0} reviews)</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Specialties */}
+                            {guideData.specialties && guideData.specialties.length > 0 && (
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Specialties</h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {guideData.specialties.map((specialty, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                                    >
+                                      {typeof specialty === 'string' ? specialty : specialty.specialty || 'Unknown Specialty'}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Languages */}
+                            {guideData.languages && guideData.languages.length > 0 && (
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Languages</h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {guideData.languages.map((language, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-green-100 text-green-800"
+                                    >
+                                      {typeof language === 'string' ? language : language.language || 'Unknown Language'}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Award className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Guide Profile Yet</h3>
+                            <p className="text-gray-500 mb-4">
+                              Create your guide profile to start offering tours and receiving bookings from travelers.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -795,80 +1414,80 @@ const UserProfile = () => {
           <div className="lg:col-span-1">
             {/* Password Change */}
             <div className="bg-white shadow rounded-lg mb-6">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-5 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Security</h3>
               </div>
-              <div className="px-6 py-4">
+              <div className="px-6 py-6">
                 {!isChangingPassword ? (
                   <button
                     onClick={() => setIsChangingPassword(true)}
-                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                   >
                     <Lock className="h-4 w-4 mr-2" />
                     Change Password
                   </button>
                 ) : (
-                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Current Password *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Password *</label>
                       <input
                         type="password"
                         name="currentPassword"
                         value={passwordData.currentPassword}
                         onChange={handlePasswordChange}
-                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                        className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.currentPassword ? 'border-red-500' : 'border-gray-300'
                         }`}
                       />
                       {errors.currentPassword && (
-                        <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>
+                        <p className="mt-2 text-sm text-red-600">{errors.currentPassword}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">New Password *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Password *</label>
                       <input
                         type="password"
                         name="newPassword"
                         value={passwordData.newPassword}
                         onChange={handlePasswordChange}
-                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                        className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.newPassword ? 'border-red-500' : 'border-gray-300'
                         }`}
                       />
                       {errors.newPassword && (
-                        <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+                        <p className="mt-2 text-sm text-red-600">{errors.newPassword}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Confirm New Password *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password *</label>
                       <input
                         type="password"
                         name="confirmPassword"
                         value={passwordData.confirmPassword}
                         onChange={handlePasswordChange}
-                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                        className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                         }`}
                       />
                       {errors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                        <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
                       )}
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-3 pt-2">
                       <button
                         type="button"
                         onClick={cancelPasswordChange}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        className="flex-1 px-3 py-2.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                        className="flex-1 inline-flex items-center justify-center px-3 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
                       >
                         {isLoading ? (
                           <>
@@ -887,10 +1506,10 @@ const UserProfile = () => {
 
             {/* Account Info */}
             <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-5 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Account Information</h3>
               </div>
-              <div className="px-6 py-4 space-y-4">
+              <div className="px-6 py-6 space-y-5">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Account Type</p>
                   <p className="text-sm text-gray-900 capitalize">{user.role || 'User'}</p>
@@ -919,4 +1538,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-

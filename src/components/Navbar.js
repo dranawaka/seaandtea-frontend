@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown } from 'lucide-react';
+import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
@@ -93,25 +93,28 @@ const Navbar = () => {
 
                     {/* Profile Management */}
                     <div className="py-1">
-                      <Link
-                        to="/profile"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                      >
-                        <User className="h-4 w-4 mr-3" />
-                        My Profile
-                      </Link>
+                      {user?.role === 'GUIDE' ? (
+                        <Link
+                          to="/profile"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                        >
+                          <Settings className="h-4 w-4 mr-3" />
+                          My Profile
+                        </Link>
+                      ) : (
+                        <Link
+                          to="/profile"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                        >
+                          <User className="h-4 w-4 mr-3" />
+                          My Profile
+                        </Link>
+                      )}
                       
                       {user?.role === 'GUIDE' && (
                         <>
-                          <Link
-                            to="/guide-profile"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            <Settings className="h-4 w-4 mr-3" />
-                            Guide Profile
-                          </Link>
                           <Link
                             to="/guide-tours"
                             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
@@ -127,6 +130,24 @@ const Navbar = () => {
                           >
                             <Plus className="h-4 w-4 mr-3" />
                             Create New Tour
+                          </Link>
+                        </>
+                      )}
+
+                      {/* Admin Section */}
+                      {user?.role === 'ADMIN' && (
+                        <>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <div className="px-4 py-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</p>
+                          </div>
+                          <Link
+                            to="/admin"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <Shield className="h-4 w-4 mr-3" />
+                            Admin Dashboard
                           </Link>
                         </>
                       )}
@@ -236,6 +257,24 @@ const Navbar = () => {
                       >
                         <Plus className="h-4 w-4 inline mr-2" />
                         Create New Tour
+                      </Link>
+                    </>
+                  )}
+
+                  {/* Admin Section - Mobile */}
+                  {user?.role === 'ADMIN' && (
+                    <>
+                      <div className="border-t border-gray-200 my-2"></div>
+                      <div className="px-3 py-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</p>
+                      </div>
+                      <Link
+                        to="/admin"
+                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Shield className="h-4 w-4 inline mr-2" />
+                        Admin Dashboard
                       </Link>
                     </>
                   )}
