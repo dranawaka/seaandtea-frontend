@@ -1,0 +1,77 @@
+# Sea & Tea Tours - Robots.txt
+# This file tells search engine crawlers which pages they can and cannot access
+
+User-agent: *
+Allow: /
+
+# Sitemap location - tells search engines where to find our sitemap
+Sitemap: https://seaandtea.com/sitemap.xml
+
+# Crawl-delay for respectful crawling (1 second between requests)
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /sitemap-generator/
+
+# Disallow user-specific pages that shouldn't be indexed
+Disallow: /profile/
+Disallow: /guide-profile/
+Disallow: /guide-tours/
+Disallow: /create-tour/
+Disallow: /edit-tour/
+
+# Allow important public pages
+Allow: /tours/
+Allow: /guides/
+Allow: /tour/
+Allow: /guide/
+Allow: /about/
+Allow: /contact/
+Allow: /tea/
+Allow: /seas/
+
+# Block common bot traps and unnecessary URLs
+Disallow: /*.json$
+Disallow: /*?*
+Disallow: /*#*
+Disallow: /search?*
+Disallow: /*?search=*
+Disallow: /*?filter=*
+Disallow: /*?page=*
+
+# Allow important assets and files
+Allow: /images/
+Allow: /static/css/
+Allow: /static/js/
+Allow: /favicon.ico
+Allow: /manifest.json
+Allow: /logo192.png
+Allow: /logo512.png
+
+# Specific rules for different search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
+
+# Block aggressive crawlers
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /

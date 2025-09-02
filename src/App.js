@@ -17,6 +17,7 @@ import TourDetail from './pages/TourDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './components/AdminDashboard';
+import SitemapGenerator from './pages/SitemapGenerator';
 import './App.css';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
               <Route path="/create-tour" element={<CreateTour />} />
               <Route path="/tour/:id" element={<TourDetail />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
             </Routes>
