@@ -55,6 +55,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  const updateProfilePicture = (profilePictureUrl) => {
+    const updatedUser = { ...user, profilePictureUrl };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const value = {
     user,
     token,
@@ -63,6 +69,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
+    updateProfilePicture,
   };
 
   return (

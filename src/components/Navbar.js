@@ -46,7 +46,7 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Globe className="h-8 w-8 text-primary-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">Sea & Tea Tours</span>
+            <span className="ml-2 text-xl font-bold text-gray-900">Sea & Tea</span>
           </div>
 
           {/* Desktop Navigation */}
@@ -72,7 +72,15 @@ const Navbar = () => {
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                   className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  <UserCircle className="h-5 w-5 text-primary-600" />
+                  {user?.profilePictureUrl ? (
+                    <img
+                      src={user.profilePictureUrl}
+                      alt="Profile"
+                      className="h-8 w-8 rounded-full object-cover border-2 border-primary-200"
+                    />
+                  ) : (
+                    <UserCircle className="h-5 w-5 text-primary-600" />
+                  )}
                   <span>{user?.firstName || user?.email || 'User'}</span>
                   <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -82,13 +90,28 @@ const Navbar = () => {
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
                     {/* User Info */}
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
-                      <p className="text-xs text-primary-600 font-medium capitalize mt-1">
-                        {user?.role || 'User'}
-                      </p>
+                      <div className="flex items-center space-x-3">
+                        {user?.profilePictureUrl ? (
+                          <img
+                            src={user.profilePictureUrl}
+                            alt="Profile"
+                            className="h-12 w-12 rounded-full object-cover border-2 border-primary-200"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
+                            <UserCircle className="h-6 w-6 text-primary-600" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {user?.firstName} {user?.lastName}
+                          </p>
+                          <p className="text-sm text-gray-500">{user?.email}</p>
+                          <p className="text-xs text-primary-600 font-medium capitalize mt-1">
+                            {user?.role || 'User'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Profile Management */}
@@ -124,7 +147,7 @@ const Navbar = () => {
                             My Tours
                           </Link>
                           <Link
-                            to="/guide-tours"
+                            to="/create-tour"
                             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-150"
                             onClick={() => setIsProfileDropdownOpen(false)}
                           >
@@ -216,7 +239,15 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center space-x-3 px-3 py-2">
-                    <UserCircle className="h-5 w-5 text-primary-600" />
+                    {user?.profilePictureUrl ? (
+                      <img
+                        src={user.profilePictureUrl}
+                        alt="Profile"
+                        className="h-8 w-8 rounded-full object-cover border-2 border-primary-200"
+                      />
+                    ) : (
+                      <UserCircle className="h-5 w-5 text-primary-600" />
+                    )}
                     <span className="text-base font-medium text-gray-700">
                       {user?.firstName || user?.email || 'User'}
                     </span>
@@ -251,7 +282,7 @@ const Navbar = () => {
                         My Tours
                       </Link>
                       <Link
-                        to="/guide-tours"
+                        to="/create-tour"
                         className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                         onClick={() => setIsOpen(false)}
                       >

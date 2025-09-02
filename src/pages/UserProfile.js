@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, Users, Clock, DollarSign, Lock, Award, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import ProfilePictureUpload from '../components/ProfilePictureUpload';
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -24,7 +25,8 @@ const UserProfile = () => {
     phone: '',
     dateOfBirth: '',
     nationality: '',
-    location: ''
+    location: '',
+    profilePictureUrl: ''
   });
   
   // Guide profile form data
@@ -57,7 +59,8 @@ const UserProfile = () => {
         phone: user.phone || '',
         dateOfBirth: user.dateOfBirth || '',
         nationality: user.nationality || '',
-        location: user.location || ''
+        location: user.location || '',
+        profilePictureUrl: user.profilePictureUrl || ''
       });
       
       // Load guide profile if user is a guide
@@ -511,6 +514,18 @@ const UserProfile = () => {
     setIsChangingPassword(false);
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setErrors({});
+  };
+
+  // Handle profile picture update
+  const handleProfilePictureUpdate = (newImageUrl) => {
+    setProfileData(prev => ({
+      ...prev,
+      profilePictureUrl: newImageUrl
+    }));
+
+    // Update the user context with new profile picture
+    const updatedUser = { ...user, profilePictureUrl: newImageUrl };
+    login(updatedUser, token);
   };
 
   if (!user) {
@@ -1412,6 +1427,23 @@ const UserProfile = () => {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
+            {/* Profile Picture */}
+            <div className="bg-white shadow rounded-lg mb-6">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Profile Picture</h3>
+              </div>
+              <div className="px-6 py-6">
+                <ProfilePictureUpload
+                  currentImageUrl={profileData.profilePictureUrl}
+                  onImageUpdate={handleProfilePictureUpdate}
+                  userId={user?.id}
+                  userRole={user?.role}
+                  size="large"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
             {/* Password Change */}
             <div className="bg-white shadow rounded-lg mb-6">
               <div className="px-6 py-5 border-b border-gray-200">

@@ -26,11 +26,11 @@ const GuideTours = () => {
     duration: '',
     maxGroupSize: '',
     price: '',
-    difficulty: 'EASY',
     includes: [],
     excludes: [],
-    requirements: [],
-    highlights: []
+    highlights: [],
+    meetingPoint: '',
+    cancellationPolicy: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -51,7 +51,7 @@ const GuideTours = () => {
 
   const loadTours = async () => {
     try {
-      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST);
+      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS);
       console.log(`🚀 Loading tours for guide ${user?.id} from: ${url}`);
       
       const response = await fetch(url, {
@@ -66,9 +66,8 @@ const GuideTours = () => {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter tours for the current guide
-        const guideTours = data.content ? data.content.filter(tour => tour.guideId === user.id) : [];
-        setTours(guideTours);
+        // The API should return tours for the current user, no need to filter
+        setTours(data.content || data || []);
       }
     } catch (error) {
       console.error('Error loading tours:', error);
@@ -111,11 +110,11 @@ const GuideTours = () => {
   const validateTourForm = () => {
     const newErrors = {};
 
-    if (!tourForm.title.trim()) {
+    if (!tourForm.title || !tourForm.title.trim()) {
       newErrors.title = 'Tour title is required';
     }
 
-    if (!tourForm.description.trim()) {
+    if (!tourForm.description || !tourForm.description.trim()) {
       newErrors.description = 'Tour description is required';
     } else if (tourForm.description.length < 50) {
       newErrors.description = 'Description must be at least 50 characters';
@@ -125,11 +124,11 @@ const GuideTours = () => {
       newErrors.category = 'Category is required';
     }
 
-    if (!tourForm.location.trim()) {
+    if (!tourForm.location || !tourForm.location.trim()) {
       newErrors.location = 'Location is required';
     }
 
-    if (!tourForm.duration.trim()) {
+    if (!tourForm.duration || !tourForm.duration.trim()) {
       newErrors.duration = 'Duration is required';
     }
 
@@ -162,9 +161,22 @@ const GuideTours = () => {
     try {
       const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
       const tourData = {
-        ...tourForm,
+        title: tourForm.title,
+        description: tourForm.description,
+        category: tourForm.category,
+        durationHours: parseInt(tourForm.duration),
         maxGroupSize: parseInt(tourForm.maxGroupSize),
-        price: parseFloat(tourForm.price)
+        pricePerPerson: parseFloat(tourForm.price),
+        instantBooking: false,
+        securePayment: true,
+        languages: ["English"], // Default language
+        highlights: tourForm.highlights,
+        includedItems: tourForm.includes,
+        excludedItems: tourForm.excludes,
+        meetingPoint: tourForm.meetingPoint,
+        cancellationPolicy: tourForm.cancellationPolicy,
+        imageUrls: [],
+        primaryImageIndex: 0
       };
       
       console.log(`🚀 Creating tour: ${url}`, tourData);
@@ -215,9 +227,22 @@ const GuideTours = () => {
     try {
       const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE.replace(':id', selectedTour.id));
       const tourData = {
-        ...tourForm,
+        title: tourForm.title,
+        description: tourForm.description,
+        category: tourForm.category,
+        durationHours: parseInt(tourForm.duration),
         maxGroupSize: parseInt(tourForm.maxGroupSize),
-        price: parseFloat(tourForm.price)
+        pricePerPerson: parseFloat(tourForm.price),
+        instantBooking: false,
+        securePayment: true,
+        languages: ["English"], // Default language
+        highlights: tourForm.highlights,
+        includedItems: tourForm.includes,
+        excludedItems: tourForm.excludes,
+        meetingPoint: tourForm.meetingPoint,
+        cancellationPolicy: tourForm.cancellationPolicy,
+        imageUrls: [],
+        primaryImageIndex: 0
       };
       
       console.log(`🚀 Updating tour ${selectedTour.id}: ${url}`, tourData);
@@ -306,11 +331,11 @@ const GuideTours = () => {
       duration: tour.duration || '',
       maxGroupSize: tour.maxGroupSize?.toString() || '',
       price: tour.price?.toString() || '',
-      difficulty: tour.difficulty || 'EASY',
       includes: tour.includes || [],
       excludes: tour.excludes || [],
-      requirements: tour.requirements || [],
-      highlights: tour.highlights || []
+      highlights: tour.highlights || [],
+      meetingPoint: tour.meetingPoint || '',
+      cancellationPolicy: tour.cancellationPolicy || ''
     });
     setShowEditModal(true);
   };
@@ -324,11 +349,11 @@ const GuideTours = () => {
       duration: '',
       maxGroupSize: '',
       price: '',
-      difficulty: 'EASY',
       includes: [],
       excludes: [],
-      requirements: [],
-      highlights: []
+      highlights: [],
+      meetingPoint: '',
+      cancellationPolicy: ''
     });
     setErrors({});
   };
@@ -378,7 +403,7 @@ const GuideTours = () => {
               <p className="mt-2 text-gray-600">Manage your tour offerings and bookings</p>
             </div>
             <button
-              onClick={openCreateModal}
+              onClick={() => navigate('/create-tour')}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -486,7 +511,7 @@ const GuideTours = () => {
             </p>
             {!searchTerm && !filterCategory && !filterStatus && (
               <button
-                onClick={openCreateModal}
+                onClick={() => navigate('/create-tour')}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -685,16 +710,18 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
                   }`}
                 >
                   <option value="">Select category</option>
-                  <option value="ADVENTURE">Adventure</option>
-                  <option value="CULTURAL">Cultural</option>
-                  <option value="NATURE">Nature</option>
-                  <option value="FOOD">Food & Dining</option>
-                  <option value="HISTORICAL">Historical</option>
-                  <option value="WILDLIFE">Wildlife</option>
+                  <option value="TEA_TOURS">Tea Tours</option>
+                  <option value="BEACH_TOURS">Beach Tours</option>
+                  <option value="CULTURAL_TOURS">Cultural Tours</option>
+                  <option value="ADVENTURE_TOURS">Adventure Tours</option>
+                  <option value="FOOD_TOURS">Food Tours</option>
+                  <option value="NATURE_TOURS">Nature Tours</option>
+                  <option value="HISTORICAL_TOURS">Historical Tours</option>
+                  <option value="WILDLIFE_TOURS">Wildlife Tours</option>
                   <option value="WATER_SPORTS">Water Sports</option>
-                  <option value="HIKING">Hiking</option>
-                  <option value="PHOTOGRAPHY">Photography</option>
-                  <option value="WELLNESS">Wellness</option>
+                  <option value="HIKING_TOURS">Hiking Tours</option>
+                  <option value="PHOTOGRAPHY_TOURS">Photography Tours</option>
+                  <option value="WELLNESS_TOURS">Wellness Tours</option>
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>
@@ -812,6 +839,33 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
               </p>
             </div>
 
+            {/* Additional Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Meeting Point</label>
+                <input
+                  type="text"
+                  name="meetingPoint"
+                  value={tourForm.meetingPoint}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="e.g., Hotel lobby, Central Station"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Cancellation Policy</label>
+                <textarea
+                  name="cancellationPolicy"
+                  rows={3}
+                  value={tourForm.cancellationPolicy}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="e.g., Free cancellation up to 24 hours before"
+                />
+              </div>
+            </div>
+
             {/* Array Fields */}
             <ArrayField
               label="What's Included"
@@ -831,14 +885,7 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
               placeholder="e.g., Personal expenses, tips, insurance"
             />
 
-            <ArrayField
-              label="Requirements"
-              field="requirements"
-              values={tourForm.requirements}
-              onAdd={(value) => handleArrayInputChange('requirements', value, 'add')}
-              onRemove={(index) => handleArrayInputChange('requirements', index, 'remove')}
-              placeholder="e.g., Comfortable walking shoes, water bottle"
-            />
+
 
             <ArrayField
               label="Highlights"

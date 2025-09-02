@@ -163,7 +163,7 @@ const Register = () => {
             <Globe className="h-12 w-12 text-primary-600" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            Join Sea & Tea Tours
+            Join Sea & Tea
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Create your account to start your adventure

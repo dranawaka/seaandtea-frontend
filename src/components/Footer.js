@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="col-span-2">
             <div className="flex items-center mb-4">
               <Globe className="h-8 w-8 text-primary-400" />
-              <span className="ml-2 text-xl font-bold">Sea & Tea Tours</span>
+              <span className="ml-2 text-xl font-bold">Sea & Tea</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
               Connecting travelers with local experts to create authentic and unforgettable experiences around the world.
@@ -86,7 +86,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-400">
-            © 2024 Sea & Tea Tours. All rights reserved. | 
+            © 2024 Sea & Tea. All rights reserved. | 
             <Link to="/privacy" className="text-gray-400 hover:text-primary-400 ml-2">
               Privacy Policy
             </Link> | 

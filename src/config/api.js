@@ -1,7 +1,8 @@
 // API Configuration
 // Swagger UI: http://localhost:8080/api/v1/swagger-ui/index.html
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://industrious-gratitude-production-dfe4.up.railway.app/api/v1',
+
+  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api/v1',
   TIMEOUT: 10000, // 10 seconds
   ENDPOINTS: {
     AUTH: {
@@ -14,7 +15,8 @@ export const API_CONFIG = {
       PROFILE: '/users/profile',
       UPDATE_ROLE: '/users/role',
       UPDATE_PROFILE: '/users/profile',
-      CHANGE_PASSWORD: '/users/password'
+      CHANGE_PASSWORD: '/users/password',
+      UPLOAD_PROFILE_PICTURE: '/upload/profile-picture'
     },
     GUIDES: {
       LIST: '/guides',
@@ -29,7 +31,11 @@ export const API_CONFIG = {
       AVAILABILITY: '/guides/availability',
       SPECIALTIES: '/guides/specialties',
       LANGUAGES: '/guides/languages',
-      CERTIFICATIONS: '/guides/certifications'
+      CERTIFICATIONS: '/guides/certifications',
+      UPLOAD_PROFILE_PICTURE: '/upload/profile-picture',
+      // New endpoint for getting guides by verification status
+      BY_VERIFICATION_STATUS: '/guides?verificationStatus=:status',
+      VERIFIED_PAGINATED: '/guides/verified?page=:page&size=:size'
     },
     ADMIN: {
       USERS: '/admin/users',
@@ -51,7 +57,13 @@ export const API_CONFIG = {
       CREATE: '/tours',
       UPDATE: '/tours/:id',
       DELETE: '/tours/:id',
-      SEARCH: '/tours/search'
+      SEARCH: '/tours/search',
+      PUBLIC_VERIFIED_PAGINATED: '/tours/public/verified/paginated',
+      GUIDE_TOURS: '/tours/my-tours'
+    },
+    FILES: {
+      UPLOAD_PROFILE_PICTURE: '/upload/profile-picture',
+      UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture'
     }
   }
 };
@@ -177,6 +189,200 @@ export const getPublicGuideProfile = async (guideId) => {
     return data;
   } catch (error) {
     logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DETAIL, { id: guideId }), null, null, error);
+    throw error;
+  }
+};
+
+// Get guides by verification status
+export const getGuidesByVerificationStatus = async (status = 'VERIFIED', token = null) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.BY_VERIFICATION_STATUS, { status });
+    
+    logApiCall('GET', url);
+    
+    const headers = getDefaultHeaders(!!token, token);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch guides by verification status: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.BY_VERIFICATION_STATUS, { status }), null, null, error);
+    throw error;
+  }
+};
+
+// Get all guides (public endpoint)
+export const getAllGuides = async () => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.LIST);
+    
+    logApiCall('GET', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch all guides: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.LIST), null, null, error);
+    throw error;
+  }
+};
+
+// Get verified guides with pagination (public endpoint)
+export const getVerifiedGuidesPaginated = async (page = 0, size = 10) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.VERIFIED_PAGINATED, { page, size });
+    
+    logApiCall('GET', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch verified guides: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.VERIFIED_PAGINATED, { page, size }), null, null, error);
+    throw error;
+  }
+};
+
+// Get public verified tours with pagination (public endpoint)
+export const getPublicVerifiedToursPaginated = async (page = 0, size = 20, filters = {}) => {
+  try {
+    let url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.PUBLIC_VERIFIED_PAGINATED);
+    
+    // Add query parameters
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('size', size);
+    
+    // Add filters if provided
+    if (filters.searchTerm) params.append('searchTerm', filters.searchTerm);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+    if (filters.duration) params.append('duration', filters.duration);
+    if (filters.location) params.append('location', filters.location);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    logApiCall('GET', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tours: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.PUBLIC_VERIFIED_PAGINATED), null, null, error);
+    throw error;
+  }
+};
+
+// Get tour by ID (public endpoint)
+export const getTourById = async (tourId) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DETAIL, { id: tourId });
+    
+    logApiCall('GET', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tour: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DETAIL, { id: tourId }), null, null, error);
+    throw error;
+  }
+};
+
+// Get current user's tours with pagination
+export const getGuideTours = async (guideId, page = 0, size = 10, token = null) => {
+  try {
+    let url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS);
+    
+    // Add query parameters
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('size', size);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    logApiCall('GET', url);
+    
+    const headers = getDefaultHeaders(!!token, token);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch guide tours: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS), null, null, error);
     throw error;
   }
 };

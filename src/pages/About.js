@@ -54,7 +54,7 @@ const About = () => {
       <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            About Sea & Tea Tours
+            About Sea & Tea
           </h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto">
             We're building "The Upwork for Travel Guides in Sri Lanka" - unifying the country's fragmented 
@@ -72,7 +72,7 @@ const About = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                At Sea & Tea Tours, we're solving a real problem in Sri Lanka's tourism industry. The country has a thriving community 
+                At Sea & Tea, we're solving a real problem in Sri Lanka's tourism industry. The country has a thriving community 
                 of freelance travel guides, but they're scattered across Facebook groups, WhatsApp chats, and word-of-mouth networks.
               </p>
               <p className="text-lg text-gray-600 mb-6">
@@ -164,7 +164,7 @@ const About = () => {
               Meet Our Team
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              The passionate people behind Sea & Tea Tours who make it all possible
+              The passionate people behind Sea & Tea who make it all possible
             </p>
           </div>
           

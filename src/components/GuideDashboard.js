@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Users, DollarSign, Star, Calendar, TrendingUp, Eye, Edit3, Plus } from 'lucide-react';
+import ProfilePictureUpload from './ProfilePictureUpload';
+import { useAuth } from '../context/AuthContext';
 
 const GuideDashboard = ({ tours = [], stats = {} }) => {
+  const { user, login, token } = useAuth();
   const recentTours = tours.slice(0, 3); // Show last 3 tours
   
   const defaultStats = {
@@ -16,10 +19,33 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
 
   const finalStats = { ...defaultStats, ...stats };
 
+  // Handle profile picture update
+  const handleProfilePictureUpdate = (newImageUrl) => {
+    const updatedUser = { ...user, profilePictureUrl: newImageUrl };
+    login(updatedUser, token);
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
+      {/* Profile Picture Section */}
+      <div className="mb-6 pb-6 border-b border-gray-200">
+        <div className="flex items-center space-x-6">
+          <ProfilePictureUpload
+            currentImageUrl={user?.profilePictureUrl}
+            onImageUpdate={handleProfilePictureUpdate}
+            userId={user?.id}
+            userRole={user?.role}
+            size="medium"
+          />
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Welcome back, {user?.firstName}!</h2>
+            <p className="text-gray-600">Manage your tours and track your performance</p>
+          </div>
+        </div>
+      </div>
+
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Dashboard Overview</h2>
+        <h3 className="text-lg font-semibold text-gray-900">Dashboard Overview</h3>
         <p className="text-gray-600">Your tour performance and recent activity</p>
       </div>
 

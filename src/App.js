@@ -12,6 +12,7 @@ import Tea from './pages/Tea';
 import Seas from './pages/Seas';
 import UserProfile from './pages/UserProfile';
 import GuideTours from './pages/GuideTours';
+import CreateTour from './pages/CreateTour';
 import TourDetail from './pages/TourDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -36,6 +37,7 @@ function App() {
               <Route path="/profile" element={<UserProfile />} />
               <Route path="/guide-profile" element={<UserProfile />} />
               <Route path="/guide-tours" element={<GuideTours />} />
+              <Route path="/create-tour" element={<CreateTour />} />
               <Route path="/tour/:id" element={<TourDetail />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/login" element={<Login />} />

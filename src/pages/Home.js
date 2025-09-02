@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Users, Calendar, ArrowRight, Globe, Shield, Heart, Clock, Mountain, Waves, TreePine, Building } from 'lucide-react';
 import { mockDestinations } from '../data/mockData';
+import ImageSlider from '../components/ImageSlider';
 
 const Home = () => {
   const features = [
@@ -24,29 +25,26 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-primary-600 to-primary-800 text-white">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+      {/* Hero Section with Image Slider */}
+      <section className="relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <ImageSlider />
+        </div>
+        
+        {/* Additional Hero Content */}
+        <div className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-3xl md:text-5xl font-bold mb-6">
               The Upwork for
               <span className="text-secondary-400"> Travel Guides</span>
               <br />
-              <span className="text-2xl md:text-4xl">in Sri Lanka</span>
+              <span className="text-xl md:text-3xl">in Sri Lanka</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl mb-8 max-w-3xl mx-auto">
               Connect with Sri Lanka's best freelance travel guides. Experience beaches, mountains, 
               culture & wildlife within 2-3 hours - all with certified local experts.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
-                Explore Tours
-              </Link>
-              <Link to="/guides" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-600">
-                Find Guides
-              </Link>
-            </div>
+
           </div>
         </div>
       </section>
@@ -56,7 +54,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Sea & Tea Tours?
+              Why Choose Sea & Tea?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               We unify Sri Lanka's fragmented freelance guide community, creating the ultimate platform 
