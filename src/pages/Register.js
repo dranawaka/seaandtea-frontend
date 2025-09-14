@@ -13,7 +13,7 @@ const Register = () => {
     confirmPassword: '',
     phone: '',
     dateOfBirth: '',
-    nationality: '',
+    location: '',
     userType: 'traveler'
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -88,8 +88,8 @@ const Register = () => {
       }
     }
 
-    if (!formData.nationality) {
-      newErrors.nationality = 'Nationality is required';
+    if (!formData.location) {
+      newErrors.location = 'Location is required';
     }
 
     setErrors(newErrors);
@@ -115,7 +115,7 @@ const Register = () => {
         lastName: formData.lastName,
         phone: formData.phone,
         dateOfBirth: formData.dateOfBirth,
-        nationality: formData.nationality,
+        location: formData.location,
         userType: formData.userType
       };
 
@@ -150,9 +150,204 @@ const Register = () => {
     }
   };
 
-  // Nationality options
-  const nationalityOptions = [
-    'US', 'CA', 'UK', 'AU', 'DE', 'FR', 'IT', 'ES', 'JP', 'CN', 'IN', 'BR', 'MX', 'AR', 'ZA', 'NG', 'EG', 'KE', 'MA', 'TH', 'VN', 'ID', 'MY', 'PH', 'SG', 'NZ', 'IE', 'NL', 'BE', 'CH', 'AT', 'SE', 'NO', 'DK', 'FI', 'PL', 'CZ', 'HU', 'RO', 'BG', 'HR', 'SI', 'SK', 'LT', 'LV', 'EE', 'MT', 'CY', 'LU', 'IS', 'Other'
+  // Location options - Complete list of all countries
+  const locationOptions = [
+    'Afghanistan',
+    'Albania',
+    'Algeria',
+    'Andorra',
+    'Angola',
+    'Antigua and Barbuda',
+    'Argentina',
+    'Armenia',
+    'Australia',
+    'Austria',
+    'Azerbaijan',
+    'Bahamas',
+    'Bahrain',
+    'Bangladesh',
+    'Barbados',
+    'Belarus',
+    'Belgium',
+    'Belize',
+    'Benin',
+    'Bhutan',
+    'Bolivia',
+    'Bosnia and Herzegovina',
+    'Botswana',
+    'Brazil',
+    'Brunei',
+    'Bulgaria',
+    'Burkina Faso',
+    'Burundi',
+    'Cabo Verde',
+    'Cambodia',
+    'Cameroon',
+    'Canada',
+    'Central African Republic',
+    'Chad',
+    'Chile',
+    'China',
+    'Colombia',
+    'Comoros',
+    'Congo',
+    'Costa Rica',
+    'Côte d\'Ivoire',
+    'Croatia',
+    'Cuba',
+    'Cyprus',
+    'Czech Republic',
+    'Democratic Republic of the Congo',
+    'Denmark',
+    'Djibouti',
+    'Dominica',
+    'Dominican Republic',
+    'Ecuador',
+    'Egypt',
+    'El Salvador',
+    'Equatorial Guinea',
+    'Eritrea',
+    'Estonia',
+    'Eswatini',
+    'Ethiopia',
+    'Fiji',
+    'Finland',
+    'France',
+    'Gabon',
+    'Gambia',
+    'Georgia',
+    'Germany',
+    'Ghana',
+    'Greece',
+    'Grenada',
+    'Guatemala',
+    'Guinea',
+    'Guinea-Bissau',
+    'Guyana',
+    'Haiti',
+    'Honduras',
+    'Hungary',
+    'Iceland',
+    'India',
+    'Indonesia',
+    'Iran',
+    'Iraq',
+    'Ireland',
+    'Israel',
+    'Italy',
+    'Jamaica',
+    'Japan',
+    'Jordan',
+    'Kazakhstan',
+    'Kenya',
+    'Kiribati',
+    'Kuwait',
+    'Kyrgyzstan',
+    'Laos',
+    'Latvia',
+    'Lebanon',
+    'Lesotho',
+    'Liberia',
+    'Libya',
+    'Liechtenstein',
+    'Lithuania',
+    'Luxembourg',
+    'Madagascar',
+    'Malawi',
+    'Malaysia',
+    'Maldives',
+    'Mali',
+    'Malta',
+    'Marshall Islands',
+    'Mauritania',
+    'Mauritius',
+    'Mexico',
+    'Micronesia',
+    'Moldova',
+    'Monaco',
+    'Mongolia',
+    'Montenegro',
+    'Morocco',
+    'Mozambique',
+    'Myanmar',
+    'Namibia',
+    'Nauru',
+    'Nepal',
+    'Netherlands',
+    'New Zealand',
+    'Nicaragua',
+    'Niger',
+    'Nigeria',
+    'North Korea',
+    'North Macedonia',
+    'Norway',
+    'Oman',
+    'Pakistan',
+    'Palau',
+    'Palestine',
+    'Panama',
+    'Papua New Guinea',
+    'Paraguay',
+    'Peru',
+    'Philippines',
+    'Poland',
+    'Portugal',
+    'Qatar',
+    'Romania',
+    'Russia',
+    'Rwanda',
+    'Saint Kitts and Nevis',
+    'Saint Lucia',
+    'Saint Vincent and the Grenadines',
+    'Samoa',
+    'San Marino',
+    'Sao Tome and Principe',
+    'Saudi Arabia',
+    'Senegal',
+    'Serbia',
+    'Seychelles',
+    'Sierra Leone',
+    'Singapore',
+    'Slovakia',
+    'Slovenia',
+    'Solomon Islands',
+    'Somalia',
+    'South Africa',
+    'South Korea',
+    'South Sudan',
+    'Spain',
+    'Sri Lanka',
+    'Sudan',
+    'Suriname',
+    'Sweden',
+    'Switzerland',
+    'Syria',
+    'Taiwan',
+    'Tajikistan',
+    'Tanzania',
+    'Thailand',
+    'Timor-Leste',
+    'Togo',
+    'Tonga',
+    'Trinidad and Tobago',
+    'Tunisia',
+    'Turkey',
+    'Turkmenistan',
+    'Tuvalu',
+    'Uganda',
+    'Ukraine',
+    'United Arab Emirates',
+    'United Kingdom',
+    'United States',
+    'Uruguay',
+    'Uzbekistan',
+    'Vanuatu',
+    'Vatican City',
+    'Venezuela',
+    'Vietnam',
+    'Yemen',
+    'Zambia',
+    'Zimbabwe'
   ];
 
   return (
@@ -370,33 +565,33 @@ const Register = () => {
               </div>
 
               <div>
-                <label htmlFor="nationality" className="block text-sm font-medium text-gray-700">
-                  Nationality *
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                  Location *
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <MapPin className="h-5 w-5 text-gray-400" />
                   </div>
                   <select
-                    id="nationality"
-                    name="nationality"
+                    id="location"
+                    name="location"
                     required
-                    value={formData.nationality}
+                    value={formData.location}
                     onChange={handleChange}
                     className={`input-field pl-10 ${
-                      errors.nationality ? 'border-red-500 focus:ring-red-500' : ''
+                      errors.location ? 'border-red-500 focus:ring-red-500' : ''
                     }`}
                   >
-                    <option value="">Select nationality</option>
-                    {nationalityOptions.map((nationality) => (
-                      <option key={nationality} value={nationality}>
-                        {nationality}
+                    <option value="">Select location</option>
+                    {locationOptions.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
                       </option>
                     ))}
                   </select>
                 </div>
-                {errors.nationality && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nationality}</p>
+                {errors.location && (
+                  <p className="mt-1 text-sm text-red-600">{errors.location}</p>
                 )}
               </div>
             </div>
