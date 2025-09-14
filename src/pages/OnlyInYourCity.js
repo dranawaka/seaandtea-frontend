@@ -30,9 +30,100 @@ import {
   Users
 } from 'lucide-react';
 
+// Mock data for city stories
+const mockCityStories = [
+  {
+    id: '1',
+    title: 'Hidden Waterfall in Ella - A Secret Paradise',
+    description: 'Discovered this breathtaking waterfall during a morning hike. The water is crystal clear and the surrounding forest is absolutely magical. Perfect for a peaceful morning escape from the crowds.',
+    city: 'Ella',
+    category: 'Hidden Gems',
+    author: 'Sarah Johnson',
+    authorAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+    images: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop'],
+    tags: ['waterfall', 'hiking', 'nature', 'secret'],
+    estimatedCost: 'LKR 500',
+    duration: '2-3 hours',
+    bestTime: 'Early morning',
+    likes: 45,
+    dislikes: 2,
+    comments: 12,
+    views: 234,
+    bookmarks: 18,
+    rating: 4.8,
+    totalRatings: 15,
+    createdAt: '2024-01-15T08:30:00Z',
+    verified: true,
+    featured: true,
+    commentsList: [
+      {
+        id: 'c1',
+        author: 'Mike Chen',
+        authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        text: 'Amazing find! Went there last week and it was incredible.',
+        createdAt: '2024-01-16T10:15:00Z',
+        likes: 3
+      }
+    ]
+  },
+  {
+    id: '2',
+    title: 'Best Street Food in Colombo - Pettah Market Secrets',
+    description: 'After living in Colombo for 5 years, I\'ve found the absolute best street food spots in Pettah. These vendors have been serving authentic Sri Lankan cuisine for generations.',
+    city: 'Colombo',
+    category: 'Food & Drink',
+    author: 'Priya Fernando',
+    authorAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+    images: ['https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=600&fit=crop'],
+    tags: ['street food', 'pettah', 'local', 'authentic'],
+    estimatedCost: 'LKR 1,500',
+    duration: '3-4 hours',
+    bestTime: 'Lunch time',
+    likes: 67,
+    dislikes: 1,
+    comments: 23,
+    views: 456,
+    bookmarks: 34,
+    rating: 4.9,
+    totalRatings: 28,
+    createdAt: '2024-01-14T14:20:00Z',
+    verified: true,
+    featured: true,
+    commentsList: []
+  },
+  {
+    id: '3',
+    title: 'Secret Beach in Mirissa - No Tourists!',
+    description: 'Found this pristine beach that\'s completely untouched by tourism. Perfect for a quiet day by the ocean with crystal clear water and soft sand.',
+    city: 'Mirissa',
+    category: 'Beaches',
+    author: 'Alex Thompson',
+    authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    images: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop'],
+    tags: ['beach', 'secret', 'pristine', 'quiet'],
+    estimatedCost: 'LKR 200',
+    duration: 'Half day',
+    bestTime: 'Sunset',
+    likes: 89,
+    dislikes: 0,
+    comments: 31,
+    views: 678,
+    bookmarks: 56,
+    rating: 4.7,
+    totalRatings: 22,
+    createdAt: '2024-01-13T16:45:00Z',
+    verified: false,
+    featured: false,
+    commentsList: []
+  }
+];
+
 const OnlyInYourCity = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   const [cityStories, setCityStories] = useState([]);
+  const [featuredStories, setFeaturedStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showComments, setShowComments] = useState(null);
   const [newComment, setNewComment] = useState('');
@@ -51,318 +142,193 @@ const OnlyInYourCity = () => {
     bestTime: ''
   });
 
-  // Sample data inspired by Only In Your State style
-  const sampleStories = [
-    {
-      id: 1,
-      title: "This Hidden Waterfall in Ella is So Secret, Even Most Locals Don't Know About It",
-      description: "Tucked away in the misty hills of Ella, this breathtaking waterfall remains one of Sri Lanka's best-kept secrets. The journey through tea plantations and ancient forests makes the discovery even more rewarding.",
-      city: "Ella",
-      category: "Hidden Gems",
-      author: "Sarah Johnson",
-      authorAvatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      images: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"],
-      tags: ["waterfalls", "hidden gems", "nature", "hiking", "ella"],
-      estimatedCost: "LKR 2,000",
-      duration: "4-6 hours",
-      bestTime: "Early morning",
-      likes: 24,
-      dislikes: 2,
-      comments: 8,
-      views: 156,
-      bookmarks: 12,
-      rating: 4.7,
-      totalRatings: 15,
-      createdAt: "2024-01-15",
-      verified: true,
-      featured: true,
-      commentsList: [
-        {
-          id: 1,
-          author: "Mike Chen",
-          authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-          text: "Amazing find! I visited last week and it was absolutely stunning. The hike was challenging but worth every step.",
-          createdAt: "2024-01-16",
-          likes: 5
-        },
-        {
-          id: 2,
-          author: "Priya Fernando",
-          authorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-          text: "How do I get there exactly? Any specific landmarks to look for?",
-          createdAt: "2024-01-17",
-          likes: 2
-        }
-      ]
-    },
-    {
-      id: 2,
-      title: "This Street Food Stall in Colombo Serves the Most Authentic Kottu Roti You'll Ever Taste",
-      description: "In the heart of Colombo's bustling Pettah market, this unassuming stall has been perfecting the art of kottu roti for over three decades. The secret family recipe will change everything you thought you knew about this Sri Lankan staple.",
-      city: "Colombo",
-      category: "Food & Drink",
-      author: "Raj Perera",
-      authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      images: ["https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop"],
-      tags: ["street food", "kottu roti", "authentic", "colombo", "local cuisine"],
-      estimatedCost: "LKR 1,500",
-      duration: "3-4 hours",
-      bestTime: "Evening",
-      likes: 31,
-      dislikes: 1,
-      comments: 12,
-      views: 203,
-      bookmarks: 18,
-      rating: 4.9,
-      totalRatings: 22,
-      createdAt: "2024-01-12",
-      verified: true,
-      featured: false,
-      commentsList: [
-        {
-          id: 3,
-          author: "David Silva",
-          authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-          text: "Best kottu roti I've ever had! The spices are perfectly balanced. Worth the wait in line.",
-          createdAt: "2024-01-13",
-          likes: 8
-        },
-        {
-          id: 4,
-          author: "Lisa Wang",
-          authorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-          text: "What's the exact location? I want to try this place!",
-          createdAt: "2024-01-14",
-          likes: 3
-        }
-      ]
-    },
-    {
-      id: 3,
-      title: "This Secret Beach in Galle is So Pristine, It Feels Like Your Own Private Paradise",
-      description: "While tourists flock to Unawatuna and Mirissa, this hidden cove just outside Galle offers crystal-clear waters and golden sand without the crowds. Perfect for a romantic sunset or peaceful day of relaxation.",
-      city: "Galle",
-      category: "Beaches",
-      author: "Maya Silva",
-      authorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-      images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
-      tags: ["secret beach", "pristine", "galle", "sunset", "romantic"],
-      estimatedCost: "LKR 500",
-      duration: "2-3 hours",
-      bestTime: "Evening",
-      likes: 18,
-      dislikes: 0,
-      comments: 5,
-      views: 89,
-      bookmarks: 7,
-      rating: 4.2,
-      totalRatings: 8,
-      createdAt: "2024-01-10",
-      verified: false,
-      featured: false,
-      commentsList: [
-        {
-          id: 5,
-          author: "Alex Kumar",
-          authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-          text: "Perfect spot for a quiet day! The water is crystal clear and there's barely anyone there.",
-          createdAt: "2024-01-11",
-          likes: 4
-        }
-      ]
-    },
-    {
-      id: 4,
-      title: "This Ancient Temple in Kandy Holds a Secret That Will Amaze You",
-      description: "Beyond the famous Temple of the Tooth, this lesser-known temple houses an incredible collection of ancient artifacts and offers a spiritual experience that few tourists ever discover. The peaceful atmosphere and stunning architecture make it a must-visit.",
-      city: "Kandy",
-      category: "Culture & History",
-      author: "David Chen",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      images: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"],
-      tags: ["ancient temple", "culture", "history", "kandy", "spiritual"],
-      estimatedCost: "LKR 3,000",
-      duration: "Full day",
-      bestTime: "Morning",
-      likes: 27,
-      dislikes: 1,
-      comments: 9,
-      views: 134,
-      bookmarks: 15,
-      rating: 4.6,
-      totalRatings: 12,
-      createdAt: "2024-01-08",
-      verified: true,
-      featured: false,
-      commentsList: [
-        {
-          id: 6,
-          author: "Nimal Perera",
-          authorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-          text: "The architecture is absolutely stunning. Very peaceful and spiritual place.",
-          createdAt: "2024-01-09",
-          likes: 6
-        }
-      ]
-    },
-    {
-      id: 5,
-      title: "This Mountain View in Nuwara Eliya is So Breathtaking, It Looks Like a Postcard",
-      description: "High in the central highlands, this viewpoint offers panoramic views of rolling tea plantations and misty mountains that stretch as far as the eye can see. The early morning light creates a magical atmosphere that photographers dream of.",
-      city: "Nuwara Eliya",
-      category: "Scenic Views",
-      author: "Priya Fernando",
-      authorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-      images: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"],
-      tags: ["mountain views", "tea plantations", "scenic", "photography", "nuwara eliya"],
-      estimatedCost: "LKR 1,000",
-      duration: "2-3 hours",
-      bestTime: "Early morning",
-      likes: 35,
-      dislikes: 0,
-      comments: 14,
-      views: 267,
-      bookmarks: 22,
-      rating: 4.8,
-      totalRatings: 18,
-      createdAt: "2024-01-05",
-      verified: true,
-      featured: true,
-      commentsList: [
-        {
-          id: 7,
-          author: "Tom Wilson",
-          authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-          text: "Incredible views! Got some amazing photos here. The sunrise is absolutely magical.",
-          createdAt: "2024-01-06",
-          likes: 9
-        }
-      ]
+  // Load city stories from mock data
+  const loadCityStories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      let filteredStories = [...mockCityStories];
+      
+      // Apply filters
+      if (searchTerm) {
+        filteredStories = filteredStories.filter(story => 
+          story.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          story.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          story.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      }
+      
+      if (selectedCity) {
+        filteredStories = filteredStories.filter(story => story.city === selectedCity);
+      }
+      
+      if (selectedCategory) {
+        filteredStories = filteredStories.filter(story => story.category === selectedCategory);
+      }
+      
+      const featured = mockCityStories.filter(story => story.featured);
+      
+      setCityStories(filteredStories);
+      setFeaturedStories(featured);
+    } catch (err) {
+      console.error('Error loading city stories:', err);
+      setError('Failed to load city stories. Please try again.');
+      setCityStories([]);
+      setFeaturedStories([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const cities = ["Colombo", "Kandy", "Galle", "Ella", "Nuwara Eliya", "Anuradhapura", "Polonnaruwa", "Sigiriya", "Negombo", "Bentota", "Mirissa", "Arugam Bay", "Jaffna", "Trincomalee", "Batticaloa"];
   const categories = ["Hidden Gems", "Food & Drink", "Culture & History", "Beaches", "Scenic Views", "Adventure", "Nature", "Photography", "Shopping", "Nightlife", "Wellness", "Family Fun"];
 
   useEffect(() => {
-    setCityStories(sampleStories);
+    loadCityStories();
   }, []);
 
-  const handleSubmitPost = (e) => {
+  // Reload stories when filters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadCityStories();
+    }, 500); // Debounce search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, selectedCity, selectedCategory]);
+
+  const handleSubmitPost = async (e) => {
     e.preventDefault();
-    const newStory = {
-      id: Date.now(),
-      ...newPost,
-      author: user?.firstName + ' ' + user?.lastName || 'Anonymous',
-      authorAvatar: user?.profilePictureUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      likes: 0,
-      dislikes: 0,
-      comments: 0,
-      views: 0,
-      bookmarks: 0,
-      rating: 0,
-      totalRatings: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      verified: user?.role === 'GUIDE',
-      featured: false,
-      commentsList: []
-    };
-    
-    setCityStories([newStory, ...cityStories]);
-    setNewPost({
-      title: '',
-      description: '',
-      city: '',
-      category: '',
-      images: [],
-      tags: '',
-      estimatedCost: '',
-      duration: '',
-      bestTime: ''
-    });
-    setShowPostForm(false);
+    try {
+      const newStory = {
+        id: Date.now().toString(),
+        ...newPost,
+        images: newPost.images || [],
+        tags: newPost.tags ? newPost.tags.split(',').map(tag => tag.trim()) : [],
+        author: user?.name || 'Anonymous',
+        authorAvatar: user?.profilePictureUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        likes: 0,
+        dislikes: 0,
+        comments: 0,
+        views: 0,
+        bookmarks: 0,
+        rating: 0,
+        totalRatings: 0,
+        createdAt: new Date().toISOString(),
+        verified: false,
+        featured: false,
+        commentsList: []
+      };
+      
+      // Add to mock data
+      mockCityStories.unshift(newStory);
+      
+      // Reload stories to get the latest data
+      await loadCityStories();
+      
+      setNewPost({
+        title: '',
+        description: '',
+        city: '',
+        category: '',
+        images: [],
+        tags: '',
+        estimatedCost: '',
+        duration: '',
+        bestTime: ''
+      });
+      setShowPostForm(false);
+    } catch (err) {
+      console.error('Error creating city story:', err);
+      setError('Failed to create story. Please try again.');
+    }
   };
 
-  const handleLike = (storyId) => {
-    setCityStories(stories => 
-      stories.map(story => 
-        story.id === storyId 
-          ? { ...story, likes: story.likes + 1 }
-          : story
-      )
-    );
+  const handleLike = async (storyId) => {
+    try {
+      const story = mockCityStories.find(s => s.id === storyId);
+      if (story) {
+        story.likes += 1;
+        await loadCityStories();
+      }
+    } catch (err) {
+      console.error('Error liking story:', err);
+    }
   };
 
-  const handleDislike = (storyId) => {
-    setCityStories(stories => 
-      stories.map(story => 
-        story.id === storyId 
-          ? { ...story, dislikes: story.dislikes + 1 }
-          : story
-      )
-    );
+  const handleDislike = async (storyId) => {
+    try {
+      const story = mockCityStories.find(s => s.id === storyId);
+      if (story) {
+        story.dislikes += 1;
+        await loadCityStories();
+      }
+    } catch (err) {
+      console.error('Error disliking story:', err);
+    }
   };
 
-  const handleBookmark = (storyId) => {
-    setCityStories(stories => 
-      stories.map(story => 
-        story.id === storyId 
-          ? { ...story, bookmarks: story.bookmarks + 1 }
-          : story
-      )
-    );
+  const handleBookmark = async (storyId) => {
+    try {
+      const story = mockCityStories.find(s => s.id === storyId);
+      if (story) {
+        story.bookmarks += 1;
+        await loadCityStories();
+      }
+    } catch (err) {
+      console.error('Error bookmarking story:', err);
+    }
   };
 
-  const handleAddComment = (storyId) => {
+  const handleAddComment = async (storyId) => {
     if (!newComment.trim()) return;
     
-    const comment = {
-      id: Date.now(),
-      author: user?.firstName + ' ' + user?.lastName || 'Anonymous',
-      authorAvatar: user?.profilePictureUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      text: newComment,
-      createdAt: new Date().toISOString().split('T')[0],
-      likes: 0
-    };
-
-    setCityStories(stories => 
-      stories.map(story => 
-        story.id === storyId 
-          ? { 
-              ...story, 
-              comments: story.comments + 1,
-              commentsList: [...story.commentsList, comment]
-            }
-          : story
-      )
-    );
-    
-    setNewComment('');
+    try {
+      const story = mockCityStories.find(s => s.id === storyId);
+      if (story) {
+        const author = user?.name || 'Anonymous';
+        const authorAvatar = user?.profilePictureUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+        
+        const newCommentObj = {
+          id: Date.now().toString(),
+          author,
+          authorAvatar,
+          text: newComment,
+          createdAt: new Date().toISOString(),
+          likes: 0
+        };
+        
+        story.commentsList.push(newCommentObj);
+        story.comments += 1;
+        
+        await loadCityStories();
+        setNewComment('');
+      }
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      setError('Failed to add comment. Please try again.');
+    }
   };
 
-  const handleRate = (storyId, rating) => {
-    setCityStories(stories => 
-      stories.map(story => 
-        story.id === storyId 
-          ? { 
-              ...story, 
-              totalRatings: story.totalRatings + 1,
-              rating: ((story.rating * story.totalRatings) + rating) / (story.totalRatings + 1)
-            }
-          : story
-      )
-    );
+  const handleRate = async (storyId, rating) => {
+    try {
+      const story = mockCityStories.find(s => s.id === storyId);
+      if (story) {
+        const newRating = ((story.rating * story.totalRatings) + rating) / (story.totalRatings + 1);
+        story.rating = newRating;
+        story.totalRatings += 1;
+        await loadCityStories();
+      }
+    } catch (err) {
+      console.error('Error rating story:', err);
+    }
   };
 
-  const filteredStories = cityStories.filter(story => {
-    const matchesSearch = story.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         story.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         story.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCity = !selectedCity || story.city === selectedCity;
-    const matchesCategory = !selectedCategory || story.category === selectedCategory;
-    
-    return matchesSearch && matchesCity && matchesCategory;
-  });
+  // Stories are already filtered locally
+  const filteredStories = cityStories;
 
   const getCategoryIcon = (category) => {
     switch(category) {
@@ -473,14 +439,14 @@ const OnlyInYourCity = () => {
       </div>
 
       {/* Featured Stories Section */}
-      {filteredStories.filter(story => story.featured).length > 0 && (
+      {featuredStories.length > 0 && (
         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
               🌟 Featured Discoveries
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredStories.filter(story => story.featured).map((story) => (
+              {featuredStories.map((story) => (
                 <div key={story.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border-2 border-yellow-200">
                   <div className="relative h-48 overflow-hidden">
                     <img
@@ -537,8 +503,26 @@ const OnlyInYourCity = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
           All Discoveries
         </h2>
-        <div className="space-y-8">
-          {filteredStories.map((story) => (
+        
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p className="mt-2 text-gray-600">Loading city stories...</p>
+          </div>
+        )}
+        
+        {/* Stories Grid */}
+        {!loading && (
+          <div className="space-y-8">
+            {filteredStories.map((story) => (
             <div key={story.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
@@ -771,14 +755,15 @@ const OnlyInYourCity = () => {
                 </div>
               )}
             </div>
-          ))}
-        </div>
-
-        {filteredStories.length === 0 && (
-          <div className="text-center py-12">
-            <Globe className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No discoveries found</h3>
-            <p className="text-gray-600">Try adjusting your search or filters to find more hidden gems.</p>
+            ))}
+            
+            {filteredStories.length === 0 && (
+              <div className="text-center py-12">
+                <Globe className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No discoveries found</h3>
+                <p className="text-gray-600">Try adjusting your search or filters to find more hidden gems.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
