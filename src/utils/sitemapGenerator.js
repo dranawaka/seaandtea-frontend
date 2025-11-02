@@ -36,13 +36,7 @@ const STATIC_ROUTES = [
     lastmod: new Date().toISOString().split('T')[0]
   },
   {
-    url: '/tea',
-    changefreq: 'weekly',
-    priority: '0.8',
-    lastmod: new Date().toISOString().split('T')[0]
-  },
-  {
-    url: '/seas',
+    url: '/shop',
     changefreq: 'weekly',
     priority: '0.8',
     lastmod: new Date().toISOString().split('T')[0]

@@ -6,11 +6,9 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Guides from './pages/Guides';
 import Tours from './pages/Tours';
-import OnlyInYourCity from './pages/OnlyInYourCity';
 import About from './pages/About';
 import Contact from './pages/Contact';
-import Tea from './pages/Tea';
-import Seas from './pages/Seas';
+import Shop from './pages/Shop';
 import UserProfile from './pages/UserProfile';
 import GuideTours from './pages/GuideTours';
 import CreateTour from './pages/CreateTour';
@@ -32,9 +30,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/guides" element={<Guides />} />
               <Route path="/tours" element={<Tours />} />
-              <Route path="/only-in-your-city" element={<OnlyInYourCity />} />
-              <Route path="/tea" element={<Tea />} />
-              <Route path="/seas" element={<Seas />} />
+              <Route path="/shop" element={<Shop />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/profile" element={<UserProfile />} />

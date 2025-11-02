@@ -1,0 +1,726 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { MapPin, Star, Users, Clock, ShoppingBag, Heart, Filter, Search, ArrowRight, Package, Truck, Shield, RefreshCw, Plus, Minus, X, Trash2 } from 'lucide-react';
+
+const Shop = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setProducts(shopProducts);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const shopProducts = [
+    // Tea Products - Premium Tea Packets
+    {
+      id: 1,
+      title: 'Ella High Grown Ceylon Tea',
+      category: 'tea',
+      price: 18,
+      originalPrice: 25,
+      rating: 4.9,
+      reviews: 234,
+      image: 'https://images.unsplash.com/photo-1597318985999-dd64bcc84baf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Premium high-grown Ceylon tea from the misty hills of Ella (100g)',
+      inStock: true,
+      badge: 'Best Seller',
+      productType: 'Tea Packet'
+    },
+    {
+      id: 2,
+      title: 'Nuwara Eliya Orange Pekoe',
+      category: 'tea',
+      price: 22,
+      originalPrice: 30,
+      rating: 4.8,
+      reviews: 189,
+      image: 'https://images.unsplash.com/photo-1594736797933-d0401ba890fe?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Exquisite Orange Pekoe from Little England\'s finest estates (100g)',
+      inStock: true,
+      badge: 'Premium',
+      productType: 'Tea Packet'
+    },
+    {
+      id: 3,
+      title: 'Dimbula Black Tea Collection',
+      category: 'tea',
+      price: 28,
+      originalPrice: 35,
+      rating: 4.9,
+      reviews: 156,
+      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Rich black tea blend from Dimbula region, perfect for morning brew (150g)',
+      inStock: true,
+      badge: 'Limited Edition',
+      productType: 'Tea Packet'
+    },
+    {
+      id: 4,
+      title: 'Ceylon Green Tea Organic',
+      category: 'tea',
+      price: 20,
+      originalPrice: 28,
+      rating: 4.7,
+      reviews: 98,
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Organic green tea from Sri Lankan highlands, antioxidant rich (100g)',
+      inStock: true,
+      badge: 'Organic',
+      productType: 'Tea Packet'
+    },
+    // Sea Products - Beach Wares & Sea Crafts
+    {
+      id: 5,
+      title: 'Handwoven Sea Grass Beach Bag',
+      category: 'sea',
+      price: 35,
+      originalPrice: 45,
+      rating: 4.8,
+      reviews: 142,
+      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Eco-friendly beach bag made from natural sea grass by local artisans',
+      inStock: true,
+      badge: 'Eco-Friendly',
+      productType: 'Beach Ware'
+    },
+    {
+      id: 6,
+      title: 'Coral Reef Ceramic Bowl Set',
+      category: 'sea',
+      price: 65,
+      originalPrice: 85,
+      rating: 4.9,
+      reviews: 89,
+      image: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Hand-painted ceramic bowls featuring Sri Lankan coral reef patterns',
+      inStock: true,
+      badge: 'Handmade',
+      productType: 'Sea Craft'
+    },
+    {
+      id: 7,
+      title: 'Sea Shell Wind Chime',
+      category: 'sea',
+      price: 28,
+      originalPrice: 35,
+      rating: 4.7,
+      reviews: 156,
+      image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Beautiful wind chime made from authentic Sri Lankan sea shells',
+      inStock: true,
+      badge: 'Natural',
+      productType: 'Sea Craft'
+    },
+    {
+      id: 8,
+      title: 'Beach Sarong Collection',
+      category: 'sea',
+      price: 22,
+      originalPrice: 30,
+      rating: 4.6,
+      reviews: 203,
+      image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Lightweight sarongs perfect for beach days, handwoven with ocean motifs',
+      inStock: true,
+      badge: 'Best Seller',
+      productType: 'Beach Ware'
+    },
+    // Other Products
+    {
+      id: 9,
+      title: 'Sri Lankan Spice Kit',
+      category: 'spices',
+      price: 35,
+      originalPrice: 45,
+      rating: 4.8,
+      reviews: 189,
+      image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Authentic spice collection for authentic Sri Lankan cooking',
+      inStock: true,
+      badge: 'New'
+    },
+    {
+      id: 10,
+      title: 'Handwoven Sarong Set',
+      category: 'clothing',
+      price: 25,
+      originalPrice: 35,
+      rating: 4.7,
+      reviews: 156,
+      image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Traditional handwoven sarongs in vibrant colors',
+      inStock: true,
+      badge: null
+    },
+    {
+      id: 11,
+      title: 'Wooden Elephant Carving',
+      category: 'souvenirs',
+      price: 85,
+      originalPrice: 120,
+      rating: 4.9,
+      reviews: 98,
+      image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Hand-carved wooden elephant from local artisans',
+      inStock: false,
+      badge: 'Limited'
+    },
+    {
+      id: 12,
+      title: 'Coconut Oil Beauty Set',
+      category: 'beauty',
+      price: 28,
+      originalPrice: 40,
+      rating: 4.6,
+      reviews: 143,
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Pure coconut oil products for hair and skin care',
+      inStock: true,
+      badge: 'Eco-Friendly'
+    },
+    {
+      id: 13,
+      title: 'Sri Lankan Coffee Beans',
+      category: 'beverages',
+      price: 22,
+      originalPrice: 30,
+      rating: 4.5,
+      reviews: 267,
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      description: 'Premium coffee beans from the hill country',
+      inStock: true,
+      badge: null
+    }
+  ];
+
+  const categories = [
+    { id: 'all', name: 'All Products' },
+    { id: 'sea', name: 'Sea & Beach Wears and Handy Crafts', featured: true },
+    { id: 'tea', name: 'Premium Tea', featured: true },
+    { id: 'spices', name: 'Spices & Food' },
+    { id: 'clothing', name: 'Clothing & Textiles' },
+    { id: 'souvenirs', name: 'Souvenirs & Crafts' },
+    { id: 'beauty', name: 'Beauty & Wellness' }
+  ];
+
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Cart operations
+  const addToCart = (product) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+  };
+
+  const removeFromCart = (productId) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+  };
+
+  const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.id === productId
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    );
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const getCartItemCount = () => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const shopFeatures = [
+    {
+      icon: <Package className="h-8 w-8 text-blue-600" />,
+      title: 'Authentic Products',
+      description: 'Curated selection of genuine Sri Lankan products from local artisans and producers.'
+    },
+    {
+      icon: <Truck className="h-8 w-8 text-green-600" />,
+      title: 'Worldwide Shipping',
+      description: 'Free shipping on orders over $50. Fast and secure delivery to your doorstep.'
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-purple-600" />,
+      title: 'Quality Guarantee',
+      description: '100% satisfaction guarantee with easy returns and exchanges within 30 days.'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+        <div className="absolute inset-0 bg-black opacity-20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Sri Lankan
+              <span className="text-purple-300"> Shop</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+              Discover authentic Sri Lankan products, from premium Ceylon tea to handcrafted souvenirs, 
+              delivered directly to your home.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
+                Book Experiences
+              </Link>
+              <Link to="/guides" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
+                Find Local Guides
+              </Link>
+            </div>
+            
+            {/* Cart Icon */}
+            <div className="absolute top-4 right-4">
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="relative bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-3 text-white hover:bg-opacity-30 transition-all duration-200"
+              >
+                <ShoppingBag className="h-6 w-6" />
+                {getCartItemCount() > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                    {getCartItemCount()}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Shop Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Why Shop With Us?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              We bring the best of Sri Lanka directly to you with authentic products and exceptional service
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {shopFeatures.map((feature, index) => (
+              <div key={index} className="text-center">
+                <div className="flex justify-center mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Categories Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Featured Collections
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Discover our curated Sea & Beach Wears and Handy Crafts, plus Premium Tea collections
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 mb-16">
+            {/* Sea Adventures Category */}
+            <div 
+              className="relative overflow-hidden rounded-2xl cursor-pointer group"
+              onClick={() => setSelectedCategory('sea')}
+            >
+              <div className="relative h-80 bg-gradient-to-br from-blue-600 to-teal-600">
+                <img 
+                  src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+                  alt="Sea & Beach Wears and Handy Crafts"
+                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <h3 className="text-3xl font-bold mb-2">Sea & Beach Wears and Handy Crafts</h3>
+                    <p className="text-lg mb-4">Handcrafted beach bags, sea crafts & ocean-inspired items</p>
+                    <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium">
+                      {products.filter(p => p.category === 'sea').length} products
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tea Experiences Category */}
+            <div 
+              className="relative overflow-hidden rounded-2xl cursor-pointer group"
+              onClick={() => setSelectedCategory('tea')}
+            >
+              <div className="relative h-80 bg-gradient-to-br from-green-600 to-green-800">
+                <img 
+                  src="https://images.unsplash.com/photo-1594736797933-d0401ba890fe?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+                  alt="Premium Tea"
+                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <h3 className="text-3xl font-bold mb-2">Premium Tea</h3>
+                    <p className="text-lg mb-4">Finest Ceylon tea packets from Sri Lankan highlands</p>
+                    <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-2 text-sm font-medium">
+                      {products.filter(p => p.category === 'tea').length} tea varieties
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Search and Filter Section */}
+      <section className="py-8 bg-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2 flex-wrap">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
+                    selectedCategory === category.id
+                      ? 'bg-purple-600 text-white'
+                      : category.featured
+                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Featured Products
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Handpicked selection of authentic Sri Lankan products
+            </p>
+          </div>
+          
+          {loading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading products...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProducts.map((product) => (
+                <div key={product.id} className="card overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  <div className="relative">
+                    <img 
+                      src={product.image} 
+                      alt={product.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    {product.badge && (
+                      <div className="absolute top-4 left-4 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        {product.badge}
+                      </div>
+                    )}
+                    <div className="absolute top-4 right-4">
+                      <button className="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors duration-200">
+                        <Heart className="h-5 w-5 text-gray-600" />
+                      </button>
+                    </div>
+                    {!product.inStock && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <span className="bg-red-600 text-white px-4 py-2 rounded-full font-medium">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {product.title}
+                    </h3>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                        <span className="text-sm text-gray-600">
+                          {product.rating} ({product.reviews} reviews)
+                        </span>
+                      </div>
+                      {product.productType && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          product.productType === 'Tea Packet' 
+                            ? 'bg-green-100 text-green-700'
+                            : product.productType === 'Beach Ware'
+                            ? 'bg-blue-100 text-blue-700'
+                            : product.productType === 'Sea Craft'
+                            ? 'bg-teal-100 text-teal-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {product.productType}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <p className="text-gray-600 text-sm mb-4">
+                      {product.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl font-bold text-gray-900">
+                          ${product.price}
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-lg text-gray-500 line-through">
+                            ${product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                      {product.originalPrice && (
+                        <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
+                          {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => addToCart(product)}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
+                          product.inStock
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                        disabled={!product.inStock}
+                      >
+                        <ShoppingBag className="h-4 w-4 inline mr-2" />
+                        Add to Cart
+                      </button>
+                      <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        <Heart className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {filteredProducts.length === 0 && !loading && (
+            <div className="text-center">
+              <p className="text-gray-500 text-lg mb-4">No products found matching your criteria.</p>
+              <button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('all');
+                }}
+                className="btn-primary"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Experience Sri Lanka?
+          </h2>
+          <p className="text-xl mb-8 max-w-2xl mx-auto">
+            Shop authentic products or book unforgettable experiences with our local guides. 
+            Discover the magic of Sri Lanka today.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/tours" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
+              Browse Tours
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
+              Contact Us
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Shopping Cart Sidebar */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsCartOpen(false)}></div>
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+            <div className="flex h-full flex-col">
+              {/* Cart Header */}
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Shopping Cart ({getCartItemCount()})
+                </h2>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Cart Items */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <ShoppingBag className="h-16 w-16 mb-4 text-gray-300" />
+                    <p className="text-lg font-medium mb-2">Your cart is empty</p>
+                    <p className="text-sm">Add some products to get started!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex items-center space-x-4 border-b border-gray-100 pb-4">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="h-16 w-16 rounded-lg object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            ${item.price} each
+                          </p>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="p-1 rounded-full hover:bg-gray-100"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="text-sm font-medium w-8 text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="p-1 rounded-full hover:bg-gray-100"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <p className="text-sm font-medium text-gray-900">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </p>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-red-500 hover:text-red-700 mt-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Cart Footer */}
+              {cart.length > 0 && (
+                <div className="border-t border-gray-200 px-6 py-4">
+                  <div className="flex items-center justify-between text-lg font-semibold text-gray-900 mb-4">
+                    <span>Total:</span>
+                    <span>${getCartTotal().toFixed(2)}</span>
+                  </div>
+                  <div className="space-y-3">
+                    <button className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-200">
+                      Proceed to Checkout
+                    </button>
+                    <button
+                      onClick={() => setIsCartOpen(false)}
+                      className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      Continue Shopping
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Shop;

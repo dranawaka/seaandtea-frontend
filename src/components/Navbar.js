@@ -13,9 +13,7 @@ const Navbar = () => {
     { name: 'Home', href: '/' },
     { name: 'Guides', href: '/guides' },
     { name: 'Tours', href: '/tours' },
-    { name: 'OIYC', href: '/only-in-your-city' },
-    { name: 'Tea', href: '/tea' },
-    { name: 'Sea', href: '/seas' },
+    { name: 'Shop', href: '/shop' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
