@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Calendar, Users, DollarSign, Clock, Check, X, Heart, Share2, Calendar as CalendarIcon } from 'lucide-react';
+import { MapPin, Star, Calendar as CalendarIcon, Users, DollarSign, Clock, Check, X, Heart, Share2 } from 'lucide-react';
 import { getTourById, getGuideById } from '../data/mockData';
 
 const TourDetail = () => {
@@ -108,7 +108,7 @@ const TourDetail = () => {
                   {tour.location}
                 </div>
                 <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
+                  <CalendarIcon className="h-5 w-5 mr-2" />
                   {tour.duration}
                 </div>
                 <div className="flex items-center">
@@ -412,23 +412,16 @@ const TourDetail = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select Date
                       </label>
-                      <select
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="input-field"
-                      >
-                        <option value="">Choose a date</option>
-                        {tour.availability.map((date, index) => (
-                          <option key={index} value={date}>
-                            {new Date(date).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          className="input-field pl-10 w-full"
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
                     </div>
                     
                     <div>
