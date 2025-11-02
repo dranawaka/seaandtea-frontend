@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Star, Users, Globe, Clock, Shield, CheckCircle, User, Mail, Phone, Calendar, Award } from 'lucide-react';
 import { getPublicGuideProfile } from '../config/api';
@@ -9,13 +9,7 @@ const GuideProfileViewer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (id) {
-      loadGuideProfile();
-    }
-  }, [id]);
-
-  const loadGuideProfile = async () => {
+  const loadGuideProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -24,6 +18,24 @@ const GuideProfileViewer = () => {
       const data = await getPublicGuideProfile(id);
       
       console.log('📄 Guide profile data received:', data);
+      console.log('📊 Available fields:', Object.keys(data));
+      
+      // Log debug info for fields we're looking for
+      console.log('🔍 Field debugging:', {
+        firstName: data.firstName,
+        userFirstName: data.userFirstName,
+        lastName: data.lastName,
+        userLastName: data.userLastName,
+        email: data.email,
+        userEmail: data.userEmail,
+        phone: data.phone,
+        userPhone: data.userPhone,
+        location: data.location,
+        profilePicture: data.profileImageUrl || data.profilePictureUrl,
+        hasUserObject: !!data.user,
+        userObject: data.user
+      });
+      
       setGuideData(data);
     } catch (error) {
       console.error('❌ Error loading guide profile:', error);
@@ -31,7 +43,13 @@ const GuideProfileViewer = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadGuideProfile();
+    }
+  }, [id, loadGuideProfile]);
 
   if (loading) {
     return (
@@ -73,6 +91,22 @@ const GuideProfileViewer = () => {
     );
   }
 
+  // Normalize data to handle different API response formats
+  const profilePicture = guideData.profileImageUrl || 
+                        guideData.profilePictureUrl || 
+                        guideData.userProfilePictureUrl ||
+                        guideData.user?.profilePictureUrl || 
+                        guideData.user?.profileImageUrl ||
+                        guideData.imageUrl || 
+                        guideData.image ||
+                        null;
+  
+  const firstName = guideData.firstName || guideData.userFirstName || '';
+  const lastName = guideData.lastName || guideData.userLastName || '';
+  const email = guideData.email || guideData.userEmail || null;
+  const phone = guideData.phone || guideData.userPhone || null;
+  const location = guideData.location || guideData.userLocation || null;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -81,16 +115,29 @@ const GuideProfileViewer = () => {
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Profile Image */}
             <div className="flex-shrink-0">
-              <div className="w-32 h-32 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                {guideData.firstName ? guideData.firstName.charAt(0) : 'G'}
-              </div>
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt={`${firstName} ${lastName}`}
+                  className="w-32 h-32 rounded-full object-cover border-4 border-primary-200"
+                  onError={(e) => {
+                    // Fallback to initial on error
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              {!profilePicture && (
+                <div className="w-32 h-32 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                  {firstName ? firstName.charAt(0) : 'G'}
+                </div>
+              )}
             </div>
 
             {/* Profile Info */}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {guideData.firstName} {guideData.lastName}
+                  {firstName} {lastName}
                 </h1>
                 {guideData.verificationStatus === 'VERIFIED' && (
                   <div className="flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
@@ -145,24 +192,24 @@ const GuideProfileViewer = () => {
             </h2>
             
             <div className="space-y-3">
-              {guideData.email && (
+              {email && (
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-700">{guideData.email}</span>
+                  <span className="text-gray-700">{email}</span>
                 </div>
               )}
               
-              {guideData.phone && (
+              {phone && (
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-700">{guideData.phone}</span>
+                  <span className="text-gray-700">{phone}</span>
                 </div>
               )}
               
-              {guideData.location && (
+              {location && (
                 <div className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-700">{guideData.location}</span>
+                  <span className="text-gray-700">{location}</span>
                 </div>
               )}
               
