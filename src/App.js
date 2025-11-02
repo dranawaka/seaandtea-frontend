@@ -23,9 +23,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
+        <div className="App min-h-screen flex flex-col">
           <Navbar />
-          <main className="min-h-screen">
+          <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/guides" element={<Guides />} />
