@@ -29,7 +29,7 @@ const Tours = () => {
     const fetchGuideId = async () => {
       if (isAuthenticated && token && !guideId) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api/v1'}/guides/my-profile/exists`, {
+          const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'https://seaandtea-backend-production.up.railway.app/api/v1'}/guides/my-profile/exists`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

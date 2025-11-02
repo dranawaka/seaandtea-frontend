@@ -22,7 +22,7 @@ export const testTourCreationAPI = async (token) => {
   };
 
   try {
-    const response = await fetch('http://localhost:8080/api/v1/tours', {
+    const response = await fetch('https://seaandtea-backend-production.up.railway.app/api/v1/tours', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ export const testTourCreationAPI = async (token) => {
 
 export const testTourRetrievalAPI = async (token) => {
   try {
-    const response = await fetch('http://localhost:8080/api/v1/tours', {
+    const response = await fetch('https://seaandtea-backend-production.up.railway.app/api/v1/tours', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
