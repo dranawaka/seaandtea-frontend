@@ -63,6 +63,13 @@ export const API_CONFIG = {
     FILES: {
       UPLOAD_PROFILE_PICTURE: '/upload/profile-picture',
       UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture'
+    },
+    REVIEWS: {
+      TOUR_REVIEWS: '/reviews/tour/:tourId',
+      GUIDE_REVIEWS: '/reviews/guide/:guideId',
+      CREATE: '/reviews',
+      UPDATE: '/reviews/:id',
+      DELETE: '/reviews/:id'
     }
   }
 };
@@ -382,6 +389,96 @@ export const getGuideTours = async (guideId, page = 0, size = 10, token = null) 
     return data;
   } catch (error) {
     logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS), null, null, error);
+    throw error;
+  }
+};
+
+// --- Reviews API ---
+
+export const getTourReviews = async (tourId, page = 0, size = 10, sort = 'createdAt,desc') => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.TOUR_REVIEWS, { tourId });
+    const params = new URLSearchParams({ page, size, sort });
+    const fullUrl = `${url}?${params.toString()}`;
+    logApiCall('GET', fullUrl);
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tour reviews: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', fullUrl, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.TOUR_REVIEWS, { tourId }), null, null, error);
+    throw error;
+  }
+};
+
+export const createReview = async (body, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.CREATE);
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('POST', url, body);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText || `Failed to create review: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('POST', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('POST', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.CREATE), body, null, error);
+    throw error;
+  }
+};
+
+export const updateReview = async (reviewId, body, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.UPDATE, { id: reviewId });
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('PUT', url, body);
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText || `Failed to update review: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('PUT', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('PUT', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.UPDATE, { id: reviewId }), body, null, error);
+    throw error;
+  }
+};
+
+export const deleteReview = async (reviewId, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.DELETE, { id: reviewId });
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('DELETE', url);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers
+    });
+    if (!response.ok && response.status !== 204) {
+      throw new Error(`Failed to delete review: ${response.status} ${response.statusText}`);
+    }
+    logApiCall('DELETE', url, null, response);
+    return response.status === 204 ? null : await response.json();
+  } catch (error) {
+    logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.DELETE, { id: reviewId }), null, null, error);
     throw error;
   }
 };
