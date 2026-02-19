@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Footer = () => {
   return (
@@ -46,11 +47,13 @@ const Footer = () => {
                   Find Guides
                 </Link>
               </li>
-              <li>
-                <Link to="/tours" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300 font-medium">
-                  Browse Tours
-                </Link>
-              </li>
+              {FEATURE_TOURS_ENABLED && (
+                <li>
+                  <Link to="/tours" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300 font-medium">
+                    Browse Tours
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/shop" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300 font-medium">
                   Shop

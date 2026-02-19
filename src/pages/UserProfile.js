@@ -1095,20 +1095,21 @@ const UserProfile = () => {
                     {isEditing ? (
                       <form onSubmit={handleGuideProfileSubmit} className="space-y-6">
                         {/* Bio */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Bio *</label>
+                        <div className="pb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-3">Bio *</label>
                           <textarea
                             name="bio"
-                            rows={4}
+                            rows={5}
                             value={guideFormData.bio}
                             onChange={(e) => handleGuideFormChange('bio', e.target.value)}
-                            className={`block w-full px-3 py-2.5 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                            className={`block w-full px-3 py-3 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 leading-relaxed ${
                               guideErrors.bio ? 'border-red-300' : 'border-gray-300'
                             }`}
                             placeholder="Tell travelers about your experience, expertise, and what makes you a great guide..."
                           />
                           {guideErrors.bio && <p className="mt-2 text-sm text-red-600">{guideErrors.bio}</p>}
                           <p className="mt-2 text-xs text-gray-500">Minimum 50 characters. Describe your guiding style and experience.</p>
+                          <div className="mt-4" aria-hidden />
                         </div>
 
                         {/* Rates */}
@@ -1314,14 +1315,15 @@ const UserProfile = () => {
                               </div>
                             </div>
 
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Basic Information */}
+                            <div className="space-y-8">
                               <div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-5">Basic Information</h3>
                                 <div className="space-y-5">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">Bio</p>
-                                    <p className="text-gray-900">{guideData.bio}</p>
+                                  <div className="pb-2">
+                                    <p className="text-sm font-medium text-gray-500 mb-3">Bio</p>
+                                    <p className="text-gray-900 leading-relaxed whitespace-pre-line">{guideData.bio}</p>
+                                    <div className="mt-6" aria-hidden />
                                   </div>
                                   
                                   <div className="flex items-center space-x-3">
@@ -1351,7 +1353,8 @@ const UserProfile = () => {
                                   </div>
                                 </div>
                               </div>
-                              
+
+                              {/* Professional Details (under Basic Information) */}
                               <div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-5">Professional Details</h3>
                                 <div className="space-y-5">

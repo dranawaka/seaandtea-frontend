@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +25,7 @@ const Navbar = () => {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Guides', href: '/guides' },
-    { name: 'Tours', href: '/tours' },
+    ...(FEATURE_TOURS_ENABLED ? [{ name: 'Tours', href: '/tours' }] : []),
     { name: 'Shop', href: '/shop' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
@@ -166,7 +167,7 @@ const Navbar = () => {
                           </span>
                         )}
                       </Link>
-                      {user?.role === 'GUIDE' && (
+                      {user?.role === 'GUIDE' && FEATURE_TOURS_ENABLED && (
                         <>
                       <Link
                         to="/guide-tours"
@@ -323,22 +324,26 @@ const Navbar = () => {
                         <Settings className="h-4 w-4 inline mr-2" />
                         Guide Profile
                       </Link>
-                      <Link
-                        to="/guide-tours"
-                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <MapPin className="h-4 w-4 inline mr-2" />
-                        My Tours
-                      </Link>
-                      <Link
-                        to="/create-tour"
-                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <Plus className="h-4 w-4 inline mr-2" />
-                        Create New Tour
-                      </Link>
+                      {FEATURE_TOURS_ENABLED && (
+                        <>
+                          <Link
+                            to="/guide-tours"
+                            className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <MapPin className="h-4 w-4 inline mr-2" />
+                            My Tours
+                          </Link>
+                          <Link
+                            to="/create-tour"
+                            className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <Plus className="h-4 w-4 inline mr-2" />
+                            Create New Tour
+                          </Link>
+                        </>
+                      )}
                     </>
                   )}
 

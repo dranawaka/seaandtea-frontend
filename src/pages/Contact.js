@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -272,9 +273,11 @@ const Contact = () => {
             Don't wait to explore the world with local experts. Contact us today and let's start planning your next unforgettable journey.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/tours" className="btn-secondary text-lg px-8 py-3">
-              Browse Tours
-            </a>
+            {FEATURE_TOURS_ENABLED && (
+              <a href="/tours" className="btn-secondary text-lg px-8 py-3">
+                Browse Tours
+              </a>
+            )}
             <a href="/guides" className="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
               Find Guides
             </a>

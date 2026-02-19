@@ -4,6 +4,7 @@ import { MapPin, Star, Users, Clock, ShoppingBag, Heart, Filter, Search, ArrowRi
 import { getProducts, fetchProductsPaginatedFromApi, mapProductFromApi } from '../data/shopProducts';
 import { useAuth } from '../context/AuthContext';
 import { getCartApi, addCartItemApi, updateCartItemApi, removeCartItemApi } from '../config/api';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const PAGE_SIZE = 12;
 
@@ -256,9 +257,11 @@ const Shop = () => {
               delivered directly to your home.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
-                Book Experiences
-              </Link>
+              {FEATURE_TOURS_ENABLED && (
+                <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
+                  Book Experiences
+                </Link>
+              )}
               <Link to="/guides" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
                 Find Local Guides
               </Link>
@@ -567,11 +570,13 @@ const Shop = () => {
             Discover the magic of Sri Lanka today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/tours" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
-              Browse Tours
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-              <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
+            {FEATURE_TOURS_ENABLED && (
+              <Link to="/tours" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
+                Browse Tours
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            )}
+            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
               Contact Us
             </Link>
           </div>

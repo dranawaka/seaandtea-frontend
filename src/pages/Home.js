@@ -4,6 +4,7 @@ import { MapPin, Star, Users, Calendar, ArrowRight, Globe, Shield, Heart, Clock,
 import { mockDestinations } from '../data/mockData';
 import ImageSlider from '../components/ImageSlider';
 import { listPublishedNewsApi } from '../config/api';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Home = () => {
   const [articles, setArticles] = useState([]);
@@ -109,7 +110,7 @@ const Home = () => {
               What makes Sri Lanka the perfect destination for guided travel experiences
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             <div className="card-modern p-6 text-center group">
               <div className="flex justify-center mb-4">
@@ -161,10 +162,12 @@ const Home = () => {
                 Sri Lanka's compact size means you can experience diverse landscapes and cultures in a single trip. 
                 Start your morning on a mountain trail and end your day watching the sunset on a pristine beach.
               </p>
-              <Link to="/tours" className="btn-primary text-lg px-10 py-4 inline-flex items-center">
-                Explore Sri Lanka Tours
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Link>
+              {FEATURE_TOURS_ENABLED && (
+                <Link to="/tours" className="btn-primary text-lg px-10 py-4 inline-flex items-center">
+                  Explore Sri Lanka Tours
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -217,24 +220,33 @@ const Home = () => {
                       <span className="font-medium">{destination.duration}</span>
                     </div>
                   </div>
-                  <Link 
-                    to={`/tour/${destination.id}`}
-                    className="btn-primary w-full flex items-center justify-center"
-                  >
-                    View Details
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
+                  {FEATURE_TOURS_ENABLED ? (
+                    <Link 
+                      to={`/tour/${destination.id}`}
+                      className="btn-primary w-full flex items-center justify-center"
+                    >
+                      View Details
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  ) : (
+                    <span className="btn-primary w-full flex items-center justify-center opacity-90 cursor-default">
+                      Coming soon
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
           </div>
           
-          <div className="text-center mt-16">
-            <Link to="/tours" className="btn-outline text-lg px-10 py-4 inline-flex items-center">
-              View All Tours
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Link>
-          </div>
+          {FEATURE_TOURS_ENABLED && (
+            <div className="text-center mt-16">
+              <Link to="/tours" className="btn-outline text-lg px-10 py-4 inline-flex items-center">
+                View All Tours
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { FEATURE_TOURS_ENABLED } from './config/features';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -35,16 +36,16 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/guides" element={<Guides />} />
-              <Route path="/tours" element={<Tours />} />
+              <Route path="/tours" element={FEATURE_TOURS_ENABLED ? <Tours /> : <Navigate to="/" replace />} />
               <Route path="/shop" element={<Shop />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/profile" element={<UserProfile />} />
               <Route path="/guide-profile" element={<UserProfile />} />
-              <Route path="/guide-tours" element={<GuideTours />} />
-              <Route path="/create-tour" element={<CreateTour />} />
-              <Route path="/edit-tour/:id" element={<CreateTour />} />
-              <Route path="/tour/:id" element={<TourDetail />} />
+              <Route path="/guide-tours" element={FEATURE_TOURS_ENABLED ? <GuideTours /> : <Navigate to="/" replace />} />
+              <Route path="/create-tour" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
+              <Route path="/edit-tour/:id" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
+              <Route path="/tour/:id" element={FEATURE_TOURS_ENABLED ? <TourDetail /> : <Navigate to="/" replace />} />
               <Route path="/guide/:id" element={<GuideProfileViewer />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />

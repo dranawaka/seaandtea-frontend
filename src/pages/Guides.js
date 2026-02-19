@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Star, Users, Globe, Filter, Search, Clock, Shield, CheckCircle, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapPin, Star, Users, Globe, Filter, Search, Clock, Shield, CheckCircle, Zap, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, logApiCall, getGuidesByVerificationStatus, getAllGuides, getVerifiedGuidesPaginated } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { PLACEHOLDER_IMAGES, handleImageError } from '../utils/imageUtils';
 
 const Guides = () => {
-  const { token } = useAuth();
+  const navigate = useNavigate();
+  const { token, user, isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -99,7 +100,8 @@ const Guides = () => {
             verified: guide.verificationStatus === 'VERIFIED',
             verificationStatus: guide.verificationStatus,
             isAvailable: guide.isAvailable || false,
-            userEmail: guide.userEmail || null
+            userEmail: guide.userEmail || null,
+            userId: guide.userId ?? guide.user?.id ?? null
           };
         });
 
@@ -150,7 +152,8 @@ const Guides = () => {
             verified: guide.verificationStatus === 'VERIFIED',
             verificationStatus: guide.verificationStatus,
             isAvailable: guide.isAvailable || false,
-            userEmail: guide.userEmail || null
+            userEmail: guide.userEmail || null,
+            userId: guide.userId ?? guide.user?.id ?? null
           };
         });
 
@@ -519,13 +522,42 @@ const Guides = () => {
                   >
                     View Profile
                   </Link>
-                  <button 
-                    className={`flex-1 ${guide.isAvailable ? 'btn-primary' : 'btn-outline opacity-50 cursor-not-allowed'}`}
-                    disabled={!guide.isAvailable}
-                    title={guide.isAvailable ? 'Book this guide' : 'Guide is currently unavailable'}
-                  >
-                    {guide.isAvailable ? 'Book Now' : 'Unavailable'}
-                  </button>
+                  {guide.userId && (user?.id !== guide.userId) ? (
+                    isAuthenticated ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate('/messages', {
+                          state: {
+                            startConversation: {
+                              partnerId: guide.userId,
+                              partnerName: guide.name,
+                              partnerEmail: guide.userEmail || undefined,
+                              partnerRole: 'GUIDE'
+                            }
+                          }
+                        })}
+                        className="btn-primary flex-1 flex items-center justify-center gap-1.5"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Contact
+                      </button>
+                    ) : (
+                      <Link
+                        to="/login"
+                        className="btn-primary flex-1 flex items-center justify-center gap-1.5"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Contact
+                      </Link>
+                    )
+                  ) : (
+                    <Link 
+                      to={`/guide/${guide.id}`}
+                      className="btn-outline flex-1 text-center"
+                    >
+                      View Profile
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

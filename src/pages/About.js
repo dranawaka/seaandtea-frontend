@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Users, Globe, Heart, Shield, Award, Target } from 'lucide-react';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const ABOUT_SEO = {
   title: 'About Us | Sea & Tea - Sri Lanka Local Travel Guides',
@@ -257,9 +258,11 @@ const About = () => {
             Join our community of travelers and local experts, and discover the world in a whole new way.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/tours" className="btn-secondary text-lg px-8 py-3">
-              Explore Tours
-            </a>
+            {FEATURE_TOURS_ENABLED && (
+              <a href="/tours" className="btn-secondary text-lg px-8 py-3">
+                Explore Tours
+              </a>
+            )}
             <a href="/contact" className="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
               Get in Touch
             </a>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Users, Clock, Waves, Sunset, Camera, Fish, ArrowRight, Shield } from 'lucide-react';
 import { getGuidesBySpecialty } from '../data/mockData';
+import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Seas = () => {
   const [beachGuides, setBeachGuides] = useState([]);
@@ -154,9 +155,11 @@ const Seas = () => {
               <Link to="/guides" className="btn-secondary text-lg px-8 py-3">
                 Find Sea Guides
               </Link>
-              <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
-                Browse All Tours
-              </Link>
+              {FEATURE_TOURS_ENABLED && (
+                <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
+                  Browse All Tours
+                </Link>
+              )}
             </div>
           </div>
         </div>
