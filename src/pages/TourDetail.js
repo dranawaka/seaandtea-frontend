@@ -114,13 +114,13 @@ const TourDetail = () => {
         await createReview({
           tourId: Number(tour.id),
           rating: Number(reviewForm.rating),
-          comment: reviewForm.comment.trim() || undefined,
+          comment: reviewForm.comment.trim(),
           recommendToOthers: reviewForm.recommendToOthers
         }, token);
       }
       setReviewForm({ rating: 5, comment: '', recommendToOthers: true });
       await loadReviews();
-      if (tour?.totalReviews != null) setTour((prev) => ({ ...prev, totalReviews: (prev?.totalReviews ?? 0) + 1 }));
+      await loadTourData();
     } catch (err) {
       setReviewError(err.message || 'Failed to save review');
     } finally {

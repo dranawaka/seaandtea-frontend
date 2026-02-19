@@ -38,7 +38,10 @@ export const API_CONFIG = {
     },
     ADMIN: {
       USERS: '/admin/users',
-      USER_ROLE: '/admin/users/:id/role',
+      USER_BY_ID: '/admin/users/:id',
+      USER_BAN: '/admin/users/:id/ban',
+      USER_UNBAN: '/admin/users/:id/unban',
+      USER_REMOVE: '/admin/users/:id',
       STATISTICS: '/admin/statistics',
       UNVERIFIED_GUIDES: '/guides?verificationStatus=PENDING',
       VERIFY_GUIDE: '/guides/:id/verify'
@@ -405,6 +408,9 @@ export const getTourReviews = async (tourId, page = 0, size = 10, sort = 'create
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
+    if (response.status === 404) {
+      return { content: [], totalElements: 0, totalPages: 0 };
+    }
     if (!response.ok) {
       throw new Error(`Failed to fetch tour reviews: ${response.status} ${response.statusText}`);
     }
@@ -417,22 +423,63 @@ export const getTourReviews = async (tourId, page = 0, size = 10, sort = 'create
   }
 };
 
+export const getGuideReviews = async (guideId, page = 0, size = 10, sort = 'createdAt,desc') => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.GUIDE_REVIEWS, { guideId });
+    const params = new URLSearchParams({ page, size, sort });
+    const fullUrl = `${url}?${params.toString()}`;
+    logApiCall('GET', fullUrl);
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (response.status === 404) {
+      return { content: [], totalElements: 0, totalPages: 0 };
+    }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch guide reviews: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', fullUrl, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.GUIDE_REVIEWS, { guideId }), null, null, error);
+    throw error;
+  }
+};
+
 export const createReview = async (body, token) => {
   try {
     const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.CREATE);
     const headers = getDefaultHeaders(true, token);
-    logApiCall('POST', url, body);
+    const payload = {
+      ...(body.tourId != null && { tourId: Number(body.tourId) }),
+      ...(body.guideId != null && { guideId: Number(body.guideId) }),
+      rating: body.rating,
+      comment: body.comment != null ? String(body.comment) : '',
+      recommendToOthers: body.recommendToOthers != null ? Boolean(body.recommendToOthers) : true
+    };
+    logApiCall('POST', url, payload);
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(errText || `Failed to create review: ${response.status}`);
+      let errMessage = `Failed to create review (${response.status})`;
+      try {
+        const errBody = await response.json();
+        if (errBody.message) errMessage = errBody.message;
+        else if (errBody.error) errMessage = errBody.error;
+        else if (Array.isArray(errBody.errors)) errMessage = errBody.errors.map(e => e.defaultMessage || e.message).join(', ') || errMessage;
+      } catch (_) {
+        const text = await response.text();
+        if (text) errMessage = text.length > 200 ? text.slice(0, 200) + '...' : text;
+      }
+      throw new Error(errMessage);
     }
     const data = await response.json();
-    logApiCall('POST', url, body, response);
+    logApiCall('POST', url, payload, response);
     return data;
   } catch (error) {
     logApiCall('POST', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.CREATE), body, null, error);

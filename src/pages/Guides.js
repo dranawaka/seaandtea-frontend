@@ -605,16 +605,6 @@ const Guides = () => {
             </div>
           </div>
         )}
-
-        {/* Debug Information */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Debug Info:</h3>
-            <p className="text-xs text-gray-600">Total guides loaded: {guides.length}</p>
-            <p className="text-xs text-gray-600">Current page: {currentPage + 1} of {totalPages}</p>
-            <p className="text-xs text-gray-600">API endpoint: {buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.VERIFIED_PAGINATED, { page: currentPage, size: pageSize })}</p>
-          </div>
-        )}
       </div>
     </div>
   );

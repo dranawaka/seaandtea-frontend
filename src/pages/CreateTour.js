@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, X, ArrowLeft, Save, MapPin, Clock, Users, DollarSign, Star } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
+import { buildApiUrl, API_CONFIG, logApiCall, getTourById } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const CreateTour = () => {
   const navigate = useNavigate();
+  const { id: tourId } = useParams();
+  const isEditMode = Boolean(tourId);
   const { user, token, isAuthenticated } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingTour, setLoadingTour] = useState(isEditMode);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
@@ -29,14 +32,52 @@ const CreateTour = () => {
   
   const [errors, setErrors] = useState({});
 
-  // Redirect if not authenticated or not a guide
+  // Load tour when editing
+  useEffect(() => {
+    if (!isEditMode || !tourId) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoadingTour(true);
+        const tour = await getTourById(tourId);
+        if (cancelled) return;
+        setTourForm({
+          title: tour.title || '',
+          description: tour.description || '',
+          category: tour.category || '',
+          duration: (tour.durationHours != null ? tour.durationHours : tour.duration)?.toString() || '',
+          maxGroupSize: (tour.maxGroupSize != null ? tour.maxGroupSize : tour.maxGroupSize)?.toString() || '',
+          price: (tour.pricePerPerson != null ? tour.pricePerPerson : tour.price)?.toString() || '',
+          includes: tour.includedItems || tour.includes || [],
+          excludes: tour.excludedItems || tour.excludes || [],
+          highlights: tour.highlights || [],
+          meetingPoint: tour.meetingPoint || '',
+          cancellationPolicy: tour.cancellationPolicy || ''
+        });
+      } catch (err) {
+        if (!cancelled) setMessage({ type: 'error', text: err.message || 'Failed to load tour' });
+      } finally {
+        if (!cancelled) setLoadingTour(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [isEditMode, tourId]);
+
+  // Redirect if not authenticated; allow GUIDE or ADMIN (ADMIN only in edit mode)
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
-    } else if (user?.role !== 'GUIDE') {
+      return;
+    }
+    if (!isEditMode && user?.role !== 'GUIDE') {
+      navigate('/');
+      return;
+    }
+    if (isEditMode && user?.role !== 'GUIDE' && user?.role !== 'ADMIN') {
       navigate('/');
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, isEditMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -136,31 +177,34 @@ const CreateTour = () => {
     setIsLoading(true);
     setMessage({ type: '', text: '' });
 
+    const tourData = {
+      title: tourForm.title,
+      description: tourForm.description,
+      category: tourForm.category,
+      durationHours: parseInt(tourForm.duration, 10) || 0,
+      maxGroupSize: parseInt(tourForm.maxGroupSize, 10) || 0,
+      pricePerPerson: parseFloat(tourForm.price) || 0,
+      instantBooking: false,
+      securePayment: true,
+      languages: ['English'],
+      highlights: tourForm.highlights,
+      includedItems: tourForm.includes,
+      excludedItems: tourForm.excludes,
+      meetingPoint: tourForm.meetingPoint,
+      cancellationPolicy: tourForm.cancellationPolicy,
+      imageUrls: [],
+      primaryImageIndex: 0
+    };
+
     try {
-      const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
-      const tourData = {
-        title: tourForm.title,
-        description: tourForm.description,
-        category: tourForm.category,
-        durationHours: parseInt(tourForm.duration),
-        maxGroupSize: parseInt(tourForm.maxGroupSize),
-        pricePerPerson: parseFloat(tourForm.price),
-        instantBooking: false,
-        securePayment: true,
-        languages: ["English"], // Default language
-        highlights: tourForm.highlights,
-        includedItems: tourForm.includes,
-        excludedItems: tourForm.excludes,
-        meetingPoint: tourForm.meetingPoint,
-        cancellationPolicy: tourForm.cancellationPolicy,
-        imageUrls: [],
-        primaryImageIndex: 0
-      };
-      
-      console.log(`🚀 Creating tour: ${url}`, tourData);
-      
+      const isUpdate = isEditMode && tourId;
+      const url = isUpdate
+        ? buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE, { id: tourId })
+        : buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
+      const method = isUpdate ? 'PUT' : 'POST';
+
       const response = await fetch(url, {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -168,23 +212,23 @@ const CreateTour = () => {
         body: JSON.stringify(tourData)
       });
 
-      logApiCall('POST', url, tourData, response);
+      logApiCall(method, url, tourData, response);
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create tour');
+        throw new Error(data.message || (isUpdate ? 'Failed to update tour' : 'Failed to create tour'));
       }
 
-      setMessage({ type: 'success', text: 'Tour created successfully! Redirecting to your tours...' });
-      
-      // Redirect to guide tours page after 2 seconds
-      setTimeout(() => {
-        navigate('/guide-tours');
-      }, 2000);
+      setMessage({
+        type: 'success',
+        text: isUpdate ? 'Tour updated successfully! Redirecting...' : 'Tour created successfully! Redirecting to your tours...'
+      });
 
+      const redirectTo = user?.role === 'ADMIN' ? '/admin' : '/guide-tours';
+      setTimeout(() => navigate(redirectTo), 1500);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create tour' });
+      setMessage({ type: 'error', text: error.message || (isEditMode ? 'Failed to update tour' : 'Failed to create tour') });
     } finally {
       setIsLoading(false);
     }
@@ -197,12 +241,24 @@ const CreateTour = () => {
     { number: 4, title: 'Additional Info', description: 'What\'s included, excluded, and highlights' }
   ];
 
-  if (!user || user.role !== 'GUIDE') {
+  const canAccess = user && (user.role === 'GUIDE' || (isEditMode && user.role === 'ADMIN'));
+  if (!user || !canAccess) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingTour) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tour...</p>
         </div>
       </div>
     );
@@ -216,15 +272,15 @@ const CreateTour = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/guide-tours')}
+                onClick={() => navigate(user?.role === 'ADMIN' ? '/admin' : '/guide-tours')}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Tours
+                {isEditMode ? 'Back to Admin' : 'Back to Tours'}
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Tour</h1>
-                <p className="mt-2 text-gray-600">Share your expertise with travelers</p>
+                <h1 className="text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Tour' : 'Create New Tour'}</h1>
+                <p className="mt-2 text-gray-600">{isEditMode ? 'Update tour details' : 'Share your expertise with travelers'}</p>
               </div>
             </div>
           </div>

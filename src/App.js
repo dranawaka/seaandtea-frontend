@@ -16,6 +16,8 @@ import TourDetail from './pages/TourDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './components/AdminDashboard';
+import AdminEditGuide from './pages/AdminEditGuide';
+import AdminEditProduct from './pages/AdminEditProduct';
 import SitemapGenerator from './pages/SitemapGenerator';
 import GuideProfileViewer from './components/GuideProfileViewer';
 import './App.css';
@@ -38,9 +40,12 @@ function App() {
               <Route path="/guide-profile" element={<UserProfile />} />
               <Route path="/guide-tours" element={<GuideTours />} />
               <Route path="/create-tour" element={<CreateTour />} />
+              <Route path="/edit-tour/:id" element={<CreateTour />} />
               <Route path="/tour/:id" element={<TourDetail />} />
               <Route path="/guide/:id" element={<GuideProfileViewer />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />
+              <Route path="/admin/product/:id/edit" element={<AdminEditProduct />} />
               <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
