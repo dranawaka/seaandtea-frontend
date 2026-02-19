@@ -30,12 +30,16 @@ const TourDetail = () => {
       ...day,
       activities: Array.isArray(day?.activities) ? day.activities : []
     })) : [];
+    const primaryOrFirst = (t.images && t.images.length > 0)
+      ? (t.images.find((img) => img.isPrimary) || t.images[0])
+      : null;
+    const imageUrlFromArray = primaryOrFirst ? (primaryOrFirst.imageUrl || primaryOrFirst.url) : null;
     return {
       ...t,
       rating: t.averageRating ?? t.rating ?? 0,
       reviews: t.totalReviews ?? t.reviewCount ?? t.reviews ?? 0,
       price: t.pricePerPerson ?? t.price,
-      image: t.imageUrl ?? t.images?.[0] ?? t.image,
+      image: t.imageUrl ?? imageUrlFromArray ?? t.image,
       location: t.location ?? t.destination,
       duration: t.duration ?? t.durationHours ? `${t.durationHours}h` : '',
       groupSize: t.maxGroupSize ?? t.groupSize,
@@ -227,9 +231,12 @@ const TourDetail = () => {
       {/* Hero Section */}
       <section className="relative">
         <img 
-          src={tour.image} 
+          src={tour.image || 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'} 
           alt={tour.title}
           className="w-full h-96 md:h-[500px] object-cover"
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+          }}
         />
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute inset-0 flex items-center">

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Calendar, Users, DollarSign, Filter, Search, Clock } from 'lucide-react';
-import { getPublicVerifiedToursPaginated, getGuideTours, API_CONFIG } from '../config/api';
+import { getPublicVerifiedToursPaginated, getGuideTours, getTourById, API_CONFIG } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { getTourImageUrl, DEFAULT_TOUR_CARD_IMAGE } from '../utils/imageUtils';
 
 const Tours = () => {
   const { user, token, isAuthenticated } = useAuth();
@@ -64,24 +65,33 @@ const Tours = () => {
     try {
       let response;
       if (viewMode === 'my' && isAuthenticated && guideId) {
-        // Load guide's own tours using the getToursByGuide endpoint
         response = await getGuideTours(guideId, currentPage, 20, token);
       } else {
-        // Load public verified tours
         response = await getPublicVerifiedToursPaginated(currentPage, 20, {});
       }
-      
-      // Handle both paginated and direct array responses
+
+      let list = Array.isArray(response) ? response : (response.content || []);
       if (Array.isArray(response)) {
-        // Backend returned direct array
-        setTours(response);
         setTotalPages(1);
         setTotalElements(response.length);
       } else {
-        // Backend returned paginated response
-        setTours(response.content || []);
         setTotalPages(response.totalPages || 0);
         setTotalElements(response.totalElements || 0);
+      }
+
+      setTours(list);
+
+      // Enrich with full tour details (including images) when list endpoint omits them
+      if (list.length > 0) {
+        const results = await Promise.allSettled(list.map((t) => getTourById(t.id)));
+        const enriched = list.map((tour, i) => {
+          const full = results[i].status === 'fulfilled' ? results[i].value : null;
+          if (!full) return tour;
+          const imageUrl = getTourImageUrl(full);
+          if (!imageUrl) return tour;
+          return { ...tour, images: full.images ?? tour.images, imageUrl: imageUrl || tour.imageUrl };
+        });
+        setTours(enriched);
       }
     } catch (error) {
       console.error('Error loading tours:', error);
@@ -427,11 +437,11 @@ const Tours = () => {
             <div key={tour.id} className="card overflow-hidden">
               <div className="relative">
                 <img 
-                  src={tour.images && tour.images.length > 0 ? tour.images[0].imageUrl : (tour.imageUrl || tour.image || 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')} 
+                  src={getTourImageUrl(tour) || DEFAULT_TOUR_CARD_IMAGE}
                   alt={tour.title}
                   className="w-full h-64 object-cover"
                   onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+                    e.target.src = DEFAULT_TOUR_CARD_IMAGE;
                   }}
                 />
                 <div className="absolute top-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">

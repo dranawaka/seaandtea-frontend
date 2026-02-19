@@ -37,6 +37,26 @@ export const PLACEHOLDER_IMAGES = {
   DEFAULT: createPlaceholderImage(300, 200, 'Image', '#f3f4f6', '#6b7280')
 };
 
+/** Default tour card image when API provides no image (e.g. list endpoint omits images). */
+export const DEFAULT_TOUR_CARD_IMAGE = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+
+/**
+ * Get display image URL for a tour (handles API shapes: imageUrl, images[].imageUrl, image).
+ * @param {Object} tour - Tour object from API
+ * @returns {string|null} URL string or null
+ */
+export const getTourImageUrl = (tour) => {
+  if (!tour) return null;
+  if (tour.imageUrl) return tour.imageUrl;
+  if (tour.image && typeof tour.image === 'string') return tour.image;
+  const arr = tour.images;
+  if (arr && arr.length > 0) {
+    const primaryOrFirst = arr.find((img) => img.isPrimary) || arr[0];
+    return primaryOrFirst?.imageUrl || primaryOrFirst?.url || null;
+  }
+  return null;
+};
+
 /**
  * Handles image error by setting a fallback placeholder
  * @param {Event} event - The error event from img element

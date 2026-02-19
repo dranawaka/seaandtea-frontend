@@ -4,6 +4,7 @@ import { Plus, Edit3, Trash2, Eye, Calendar, MapPin, DollarSign, Users, Clock, S
 import { buildApiUrl, API_CONFIG, logApiCall, getTourById } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import ImagePicker from '../components/ImagePicker';
+import { getTourImageUrl } from '../utils/imageUtils';
 
 const GuideTours = () => {
   const navigate = useNavigate();
@@ -547,9 +548,9 @@ const GuideTours = () => {
               <div key={tour.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Tour Image */}
                 <div className="relative h-48 bg-gray-200">
-                  {tour.imageUrl ? (
+                  {getTourImageUrl(tour) ? (
                     <img
-                      src={tour.imageUrl}
+                      src={getTourImageUrl(tour)}
                       alt={tour.title}
                       className="w-full h-full object-cover"
                     />

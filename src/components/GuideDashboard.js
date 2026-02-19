@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Users, DollarSign, Star, Calendar, TrendingUp, Eye, Edit3, Plus } from 'lucide-react';
 import ProfilePictureUpload from './ProfilePictureUpload';
 import { useAuth } from '../context/AuthContext';
+import { getTourImageUrl } from '../utils/imageUtils';
 
 const GuideDashboard = ({ tours = [], stats = {} }) => {
   const { user, login, token } = useAuth();
@@ -161,13 +162,15 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
           </div>
         ) : (
           <div className="space-y-3">
-            {recentTours.map((tour) => (
+            {recentTours.map((tour) => {
+              const tourImg = getTourImageUrl(tour);
+              return (
               <div key={tour.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
-                    {tour.imageUrl ? (
+                    {tourImg ? (
                       <img
-                        src={tour.imageUrl}
+                        src={tourImg}
                         alt={tour.title}
                         className="h-10 w-10 rounded-lg object-cover"
                       />
@@ -198,7 +201,8 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
                   </Link>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
