@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Calendar, Users, DollarSign, Filter, Search, Clock } from 'lucide-react';
-import { getPublicVerifiedToursPaginated, getGuideTours } from '../config/api';
+import { getPublicVerifiedToursPaginated, getGuideTours, API_CONFIG } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const Tours = () => {
@@ -29,7 +29,7 @@ const Tours = () => {
     const fetchGuideId = async () => {
       if (isAuthenticated && token && !guideId) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'https://seaandtea-backend-production.up.railway.app/api/v1'}/guides/my-profile/exists`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/guides/my-profile/exists`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, CheckCircle, XCircle, Clock, Eye, UserCheck, AlertCircle, Trash2, MapPin, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, getAllGuides, getPublicVerifiedToursPaginated } from '../config/api';
+import { Shield, Users, CheckCircle, XCircle, Eye, UserCheck, AlertCircle, Trash2, MapPin, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight, RotateCcw, X, Search, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, getAllGuides, getPublicVerifiedToursPaginated, getAdminUserById, resetUserReviews, deleteProductApi } from '../config/api';
 import { useAuth } from '../context/AuthContext';
-import { getProducts, saveProducts } from '../data/shopProducts';
+import { fetchProductsFromApi } from '../data/shopProducts';
 
 const AdminDashboard = () => {
   const { user, token } = useAuth();
-  const [unverifiedGuides, setUnverifiedGuides] = useState([]);
   const [allGuides, setAllGuides] = useState([]);
   const [allTours, setAllTours] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -16,16 +15,37 @@ const AdminDashboard = () => {
   const [usersError, setUsersError] = useState(null);
   const [usersPage, setUsersPage] = useState({ page: 0, size: 20, totalPages: 0, totalElements: 0 });
   const [actingOnUserId, setActingOnUserId] = useState(null);
+  const [viewUserId, setViewUserId] = useState(null);
+  const [userDetail, setUserDetail] = useState(null);
+  const [userDetailLoading, setUserDetailLoading] = useState(false);
+  const [resettingReviewUserId, setResettingReviewUserId] = useState(null);
+  const [userSearchText, setUserSearchText] = useState('');
+  const [userFilterRole, setUserFilterRole] = useState('');
+  const [userFilterStatus, setUserFilterStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [guidesLoading, setGuidesLoading] = useState(false);
   const [toursLoading, setToursLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Load unverified guides on component mount
+  // Filter users by search and filters (client-side on current page)
+  const filteredUsers = useMemo(() => {
+    const search = (userSearchText || '').trim().toLowerCase();
+    return allUsers.filter((u) => {
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      const matchSearch = !search || name.includes(search) || email.includes(search);
+      const matchRole = !userFilterRole || (u.role || 'USER') === userFilterRole;
+      const active = u.isActive !== false;
+      const matchStatus = !userFilterStatus || (userFilterStatus === 'active' && active) || (userFilterStatus === 'banned' && !active);
+      return matchSearch && matchRole && matchStatus;
+    });
+  }, [allUsers, userSearchText, userFilterRole, userFilterStatus]);
+
+  // Load data on component mount
   useEffect(() => {
     if (user?.role === 'ADMIN') {
-      loadUnverifiedGuides();
       loadAllGuides();
       loadAllTours();
       loadAllProducts();
@@ -33,40 +53,11 @@ const AdminDashboard = () => {
     }
   }, [user]);
 
-  // Load unverified guide profiles
-  const loadUnverifiedGuides = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.UNVERIFIED_GUIDES), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUnverifiedGuides(data.content || data || []);
-      } else {
-        throw new Error('Failed to load unverified guides');
-      }
-    } catch (error) {
-      console.error('Error loading unverified guides:', error);
-      setError('Failed to load unverified guides. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Approve guide profile
+  // Verify guide profile (from user management)
   const approveGuide = async (guideId) => {
     try {
       setIsLoading(true);
       setError(null);
-
       const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.VERIFY_GUIDE, { id: guideId }), {
         method: 'POST',
         headers: {
@@ -74,21 +65,17 @@ const AdminDashboard = () => {
           'Content-Type': 'application/json'
         }
       });
-
       if (response.ok) {
         setSuccess('Guide profile approved successfully!');
-        // Remove the approved guide from the list
-        setUnverifiedGuides(prev => prev.filter(guide => guide.id !== guideId));
-        // Reload the list after a short delay
-        setTimeout(() => {
-          loadUnverifiedGuides();
-        }, 1000);
+        setTimeout(() => setSuccess(null), 3000);
+        loadAllGuides();
+        loadAllUsers(usersPage.page, usersPage.size);
       } else {
         throw new Error('Failed to approve guide profile');
       }
-    } catch (error) {
-      console.error('Error approving guide:', error);
-      setError('Failed to approve guide profile. Please try again.');
+    } catch (err) {
+      console.error('Error approving guide:', err);
+      setError(err.message || 'Failed to approve guide profile.');
     } finally {
       setIsLoading(false);
     }
@@ -107,19 +94,23 @@ const AdminDashboard = () => {
         }
       });
       if (response.ok || response.status === 204) {
-        setUnverifiedGuides(prev => prev.filter(guide => guide.id !== guideId));
-        setAllGuides(prev => prev.filter(guide => guide.id !== guideId));
+        setAllGuides(prev => prev.filter(g => g.id !== guideId));
         setSuccess('Guide profile rejected and removed.');
+        setTimeout(() => setSuccess(null), 3000);
+        loadAllUsers(usersPage.page, usersPage.size);
       } else {
         throw new Error('Failed to reject guide');
       }
     } catch (err) {
       console.error('Error rejecting guide:', err);
-      setError('Failed to reject guide profile. Please try again.');
+      setError(err.message || 'Failed to reject guide profile.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Resolve guide ID for a user (from guideSummary or allGuides)
+  const getGuideIdForUser = (u) => u.guideSummary?.id ?? allGuides.find(g => g.userId === u.id || g.user?.id === u.id)?.id;
 
   // Load all guides for admin list
   const loadAllGuides = async () => {
@@ -164,7 +155,6 @@ const AdminDashboard = () => {
       });
       if (response.ok || response.status === 204) {
         setAllGuides(prev => prev.filter(g => g.id !== guideId));
-        setUnverifiedGuides(prev => prev.filter(g => g.id !== guideId));
         setSuccess('Guide removed successfully.');
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -298,6 +288,48 @@ const AdminDashboard = () => {
     }
   };
 
+  // View user details (admin) – GET /admin/users/{id}
+  const openViewUser = async (userId) => {
+    setViewUserId(userId);
+    setUserDetail(null);
+    setUserDetailLoading(true);
+    setError(null);
+    try {
+      const data = await getAdminUserById(userId, token);
+      setUserDetail(data);
+    } catch (err) {
+      console.error('Error loading user detail:', err);
+      setError(err.message || 'Failed to load user details.');
+    } finally {
+      setUserDetailLoading(false);
+    }
+  };
+
+  const closeViewUser = () => {
+    setViewUserId(null);
+    setUserDetail(null);
+  };
+
+  // Reset reviews for user (admin) – POST /admin/users/{id}/reviews/reset
+  const handleResetReview = async (userId) => {
+    if (!window.confirm('Reset all reviews for this user? This may clear or recalculate their review data.')) return;
+    try {
+      setResettingReviewUserId(userId);
+      setError(null);
+      await resetUserReviews(userId, token);
+      setSuccess('User reviews reset successfully.');
+      setTimeout(() => setSuccess(null), 3000);
+      if (viewUserId === userId) {
+        const data = await getAdminUserById(userId, token);
+        setUserDetail(data);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to reset user reviews.');
+    } finally {
+      setResettingReviewUserId(null);
+    }
+  };
+
   // Remove user permanently (admin) – DELETE /admin/users/{id}
   const removeUser = async (userId) => {
     if (userId === user?.id) return;
@@ -328,19 +360,38 @@ const AdminDashboard = () => {
     }
   };
 
-  // Load products (from shared storage)
-  const loadAllProducts = () => {
-    setAllProducts(getProducts());
+  // Load products from API only (no hardcoded or local fallback)
+  const loadAllProducts = async () => {
+    setProductsLoading(true);
+    setError(null);
+    try {
+      const fromApi = await fetchProductsFromApi();
+      setAllProducts(Array.isArray(fromApi) ? fromApi : []);
+    } catch (err) {
+      console.warn('Products API unavailable:', err);
+      setAllProducts([]);
+      setError(err.message || 'Failed to load products. Check that the backend is running.');
+    } finally {
+      setProductsLoading(false);
+    }
   };
 
-  // Delete product (admin)
-  const deleteProduct = (productId) => {
+  // Delete product (admin) via API or local
+  const deleteProduct = async (productId) => {
     if (!window.confirm('Remove this product from the shop? This cannot be undone.')) return;
-    const updated = allProducts.filter(p => p.id !== productId);
-    saveProducts(updated);
-    setAllProducts(updated);
-    setSuccess('Product removed successfully.');
-    setTimeout(() => setSuccess(null), 3000);
+    try {
+      if (token) {
+        await deleteProductApi(productId, token);
+        setSuccess('Product removed successfully.');
+      } else {
+        setAllProducts(prev => prev.filter(p => p.id !== productId));
+        setSuccess('Product removed successfully.');
+      }
+      setAllProducts(prev => prev.filter(p => p.id !== productId));
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to remove product.');
+    }
   };
 
   // Early return if not admin
@@ -405,7 +456,7 @@ const AdminDashboard = () => {
                 <Users className="h-5 w-5 text-gray-500 mr-2" />
                 <h2 className="text-lg font-medium text-gray-900">User Management</h2>
                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {usersPage.totalElements ?? allUsers.length} users
+                  {(userSearchText || userFilterRole || userFilterStatus) ? `${filteredUsers.length} of ${usersPage.totalElements ?? allUsers.length}` : (usersPage.totalElements ?? allUsers.length)} users
                 </span>
               </div>
               <button
@@ -417,6 +468,47 @@ const AdminDashboard = () => {
                 Refresh
               </button>
             </div>
+          </div>
+          {/* Search and filters */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={userSearchText}
+                onChange={(e) => setUserSearchText(e.target.value)}
+                className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <select
+              value={userFilterRole}
+              onChange={(e) => setUserFilterRole(e.target.value)}
+              className="block py-2 pl-3 pr-8 border border-gray-300 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">All roles</option>
+              <option value="USER">USER</option>
+              <option value="GUIDE">GUIDE</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <select
+              value={userFilterStatus}
+              onChange={(e) => setUserFilterStatus(e.target.value)}
+              className="block py-2 pl-3 pr-8 border border-gray-300 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="banned">Banned</option>
+            </select>
+            {(userSearchText || userFilterRole || userFilterStatus) && (
+              <button
+                type="button"
+                onClick={() => { setUserSearchText(''); setUserFilterRole(''); setUserFilterStatus(''); }}
+                className="text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             {usersError && (
@@ -444,8 +536,11 @@ const AdminDashboard = () => {
               <div className="p-6 text-center text-gray-500">
                 No users found. If you expect to see users here, ensure the backend exposes GET /admin/users.
               </div>
-            ) : allUsers.length === 0 ? (
-              <div className="p-6 text-center text-sm text-gray-500">No users to display.</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-6 text-center text-sm text-gray-500">
+                No users match your search or filters.{' '}
+                <button type="button" onClick={() => { setUserSearchText(''); setUserFilterRole(''); setUserFilterStatus(''); }} className="text-primary-600 hover:underline">Clear filters</button>
+              </div>
             ) : (
               <>
                 <table className="min-w-full divide-y divide-gray-200">
@@ -460,7 +555,7 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {allUsers.map((u) => {
+                    {filteredUsers.map((u) => {
                       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || '—';
                       const email = u.email || '—';
                       const role = u.role || 'USER';
@@ -469,6 +564,8 @@ const AdminDashboard = () => {
                       const isAdmin = role === 'ADMIN';
                       const acting = actingOnUserId === u.id;
                       const guideSummary = u.guideSummary;
+                      const guideId = getGuideIdForUser(u);
+                      const isPendingGuide = guideSummary?.verificationStatus === 'PENDING' && guideId;
                       return (
                         <tr key={u.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -502,8 +599,8 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {guideSummary ? (
-                              <span title={`Verified: ${guideSummary.verificationStatus}, Tours: ${guideSummary.totalTours ?? 0}`}>
-                                Guide · {guideSummary.totalTours ?? 0} tours
+                              <span title={`${guideSummary.verificationStatus}, Tours: ${guideSummary.totalTours ?? 0}`}>
+                                {guideSummary.verificationStatus === 'PENDING' ? 'Pending · ' : ''}Guide · {guideSummary.totalTours ?? 0} tours
                               </span>
                             ) : role === 'GUIDE' ? (
                               <span className="text-gray-400">—</span>
@@ -515,7 +612,51 @@ const AdminDashboard = () => {
                             {isCurrentUser ? (
                               <span className="text-gray-400">(you)</span>
                             ) : (
-                              <div className="flex items-center justify-end gap-1">
+                              <div className="flex items-center justify-end gap-1 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => openViewUser(u.id)}
+                                  disabled={acting}
+                                  title="View user details and reviews"
+                                  className="inline-flex items-center px-2 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleResetReview(u.id)}
+                                  disabled={acting || resettingReviewUserId === u.id}
+                                  title="Reset reviews for this user"
+                                  className="inline-flex items-center px-2 py-1.5 border border-blue-300 text-blue-700 text-xs font-medium rounded hover:bg-blue-50 disabled:opacity-50"
+                                >
+                                  <RotateCcw className={`h-4 w-4 mr-1 ${resettingReviewUserId === u.id ? 'animate-spin' : ''}`} />
+                                  Reset review
+                                </button>
+                                {isPendingGuide && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => approveGuide(guideId)}
+                                      disabled={isLoading}
+                                      title="Verify guide profile"
+                                      className="inline-flex items-center px-2 py-1.5 border border-green-300 text-green-700 text-xs font-medium rounded hover:bg-green-50 disabled:opacity-50"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Verify
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => rejectGuide(guideId)}
+                                      disabled={isLoading}
+                                      title="Reject and remove guide profile"
+                                      className="inline-flex items-center px-2 py-1.5 border border-red-300 text-red-700 text-xs font-medium rounded hover:bg-red-50 disabled:opacity-50"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
                                 {isActive ? (
                                   <button
                                     type="button"
@@ -556,27 +697,64 @@ const AdminDashboard = () => {
                     })}
                   </tbody>
                 </table>
-                {usersPage.totalPages > 1 && (
-                  <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
-                      Page {usersPage.page + 1} of {usersPage.totalPages} ({usersPage.totalElements} total)
-                    </p>
-                    <div className="flex gap-2">
+                {/* Pagination */}
+                {(usersPage.totalPages > 0 || allUsers.length > 0) && (
+                  <div className="px-6 py-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm text-gray-500">
+                        Page {usersPage.page + 1} of {Math.max(1, usersPage.totalPages)} ({usersPage.totalElements ?? allUsers.length} total)
+                      </p>
+                      <label className="flex items-center gap-2 text-sm text-gray-600">
+                        Rows per page
+                        <select
+                          value={usersPage.size}
+                          onChange={(e) => loadAllUsers(0, Number(e.target.value))}
+                          disabled={usersLoading}
+                          className="py-1 pl-2 pr-6 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                        >
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadAllUsers(0, usersPage.size)}
+                        disabled={usersLoading || usersPage.page <= 0}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="First page"
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => loadAllUsers(usersPage.page - 1, usersPage.size)}
                         disabled={usersLoading || usersPage.page <= 0}
-                        className="inline-flex items-center px-2 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Previous page"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => loadAllUsers(usersPage.page + 1, usersPage.size)}
-                        disabled={usersLoading || usersPage.page >= usersPage.totalPages - 1}
-                        className="inline-flex items-center px-2 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                        disabled={usersLoading || usersPage.page >= Math.max(1, usersPage.totalPages) - 1}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Next page"
                       >
                         <ChevronRight className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loadAllUsers(Math.max(0, usersPage.totalPages - 1), usersPage.size)}
+                        disabled={usersLoading || usersPage.page >= Math.max(1, usersPage.totalPages) - 1}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Last page"
+                      >
+                        <ChevronsRight className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -586,151 +764,97 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Unverified Guides Section */}
-        <div className="bg-white shadow rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 text-yellow-500 mr-2" />
-                <h2 className="text-lg font-medium text-gray-900">Unverified Guide Profiles</h2>
-                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  {unverifiedGuides.length} pending
-                </span>
+        {/* View User Modal */}
+        {viewUserId && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" role="dialog">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/50" onClick={closeViewUser} aria-hidden="true" />
+              <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">User details</h3>
+                  <button
+                    type="button"
+                    onClick={closeViewUser}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                    aria-label="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                {userDetailLoading ? (
+                  <div className="py-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto" />
+                    <p className="mt-2 text-sm text-gray-500">Loading...</p>
+                  </div>
+                ) : userDetail ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 h-14 w-14 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+                        {userDetail.profilePictureUrl ? (
+                          <img src={userDetail.profilePictureUrl} alt="" className="h-14 w-14 object-cover" />
+                        ) : (
+                          <Users className="h-7 w-7 text-primary-600" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {[userDetail.firstName, userDetail.lastName].filter(Boolean).join(' ') || '—'}
+                        </div>
+                        <div className="text-sm text-gray-500">{userDetail.email}</div>
+                        <div className="flex gap-2 mt-1">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            userDetail.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+                            userDetail.role === 'GUIDE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {userDetail.role || 'USER'}
+                          </span>
+                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${userDetail.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {userDetail.isActive !== false ? 'Active' : 'Banned'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <dl className="grid grid-cols-1 gap-2 text-sm">
+                      <div><dt className="text-gray-500">User ID</dt><dd className="font-mono text-gray-900">{userDetail.id}</dd></div>
+                      {userDetail.guideSummary && (
+                        <div>
+                          <dt className="text-gray-500">Guide</dt>
+                          <dd className="text-gray-900">Verified: {String(userDetail.guideSummary.verificationStatus)} · Tours: {userDetail.guideSummary.totalTours ?? 0}</dd>
+                        </div>
+                      )}
+                      {(userDetail.reviewCount != null || userDetail.totalReviews != null) && (
+                        <div>
+                          <dt className="text-gray-500">Reviews</dt>
+                          <dd className="text-gray-900">{userDetail.reviewCount ?? userDetail.totalReviews ?? 0}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <div className="pt-4 border-t flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResetReview(userDetail.id)}
+                        disabled={resettingReviewUserId === userDetail.id}
+                        className="inline-flex items-center px-3 py-2 border border-blue-300 text-blue-700 text-sm font-medium rounded-md hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        <RotateCcw className={`h-4 w-4 mr-2 ${resettingReviewUserId === userDetail.id ? 'animate-spin' : ''}`} />
+                        Reset review
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeViewUser}
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Could not load user details.</p>
+                )}
               </div>
-              <button
-                onClick={loadUnverifiedGuides}
-                disabled={isLoading}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
             </div>
           </div>
-
-          <div className="overflow-hidden">
-            {isLoading ? (
-              <div className="p-6 text-center">
-                <div className="inline-flex items-center px-4 py-2 text-sm text-gray-500">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                  Loading unverified guides...
-                </div>
-              </div>
-            ) : unverifiedGuides.length === 0 ? (
-              <div className="p-6 text-center">
-                <CheckCircle className="mx-auto h-12 w-12 text-green-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">All guides verified!</h3>
-                <p className="text-gray-500">There are no pending guide profile verifications.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Guide
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Specialties
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Languages
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {unverifiedGuides.map((guide) => (
-                      <tr key={guide.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              {guide.profilePictureUrl ? (
-                                <img
-                                  className="h-10 w-10 rounded-full object-cover"
-                                  src={guide.profilePictureUrl}
-                                  alt={`${guide.firstName} ${guide.lastName}`}
-                                />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                  <Users className="h-5 w-5 text-primary-600" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {guide.firstName} {guide.lastName}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ID: {guide.id}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{guide.email}</div>
-                          <div className="text-sm text-gray-500">{guide.phone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-wrap gap-1">
-                            {(guide.specialties || []).map((specialty, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                              >
-                                {typeof specialty === 'string' ? specialty : specialty.specialty || 'Unknown Specialty'}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-wrap gap-1">
-                            {(guide.languages || []).map((language, index) => {
-                              const languageText = typeof language === 'string' ? language : language.language || 'Unknown Language';
-                              return (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                                >
-                                  {languageText}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => approveGuide(guide.id)}
-                              disabled={isLoading}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => rejectGuide(guide.id)}
-                              disabled={isLoading}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* All Guides - Admin remove */}
         <div className="bg-white shadow rounded-lg mb-8">
@@ -908,22 +1032,34 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <ShoppingBag className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-medium text-gray-900">Shop Products</h2>
+                <h2 className="text-lg font-medium text-gray-900">Product Management</h2>
                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                   {allProducts.length}
                 </span>
               </div>
-              <button
-                onClick={loadAllProducts}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/admin/product/new"
+                  className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add product
+                </Link>
+                <button
+                  onClick={loadAllProducts}
+                  disabled={productsLoading}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
-            {allProducts.length === 0 ? (
+            {productsLoading ? (
+              <div className="p-6 text-center text-sm text-gray-500">Loading products...</div>
+            ) : allProducts.length === 0 ? (
               <div className="p-6 text-center text-gray-500">No products found.</div>
             ) : (
               <table className="min-w-full divide-y divide-gray-200">
@@ -971,7 +1107,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -997,23 +1133,7 @@ const AdminDashboard = () => {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Verified Guides</dt>
-                    <dd className="text-lg font-medium text-gray-900">-</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Clock className="h-6 w-6 text-yellow-400" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Pending Verifications</dt>
-                    <dd className="text-lg font-medium text-gray-900">{unverifiedGuides.length}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{allGuides.length}</dd>
                   </dl>
                 </div>
               </div>

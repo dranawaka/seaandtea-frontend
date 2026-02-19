@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Shield, AlertCircle, CheckCircle, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
-import { getProducts, saveProducts, getProductById } from '../data/shopProducts';
+import { getProducts, saveProducts, getProductById, fetchProductByIdFromApi, mapProductToApi } from '../data/shopProducts';
+import { updateProductApi, createProductApi } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = [
-  { id: 'tea', name: 'Tea' },
-  { id: 'sea', name: 'Sea & Beach' },
+  { id: 'sea', name: 'Sea & Beach Wears and Handy Crafts' },
+  { id: 'tea', name: 'Premium Tea' },
   { id: 'spices', name: 'Spices & Food' },
   { id: 'clothing', name: 'Clothing & Textiles' },
   { id: 'souvenirs', name: 'Souvenirs & Crafts' },
   { id: 'beauty', name: 'Beauty & Wellness' },
-  { id: 'beverages', name: 'Beverages' }
+  { id: 'other', name: 'Other' }
 ];
-
-const PRODUCT_TYPES = ['Tea Packet', 'Beach Ware', 'Sea Craft', ''];
 
 const AdminEditProduct = () => {
   const { id: productId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [errors, setErrors] = useState({});
@@ -31,44 +32,70 @@ const AdminEditProduct = () => {
     originalPrice: '',
     description: '',
     images: [''],
-    inStock: true,
-    badge: '',
-    productType: '',
+    isActive: true,
+    isBestSeller: false,
     rating: '',
     reviews: ''
   });
+
+  // Route /admin/product/new has no :id param, so detect via pathname
+  const isNewProduct = productId === 'new' || location.pathname.endsWith('/new');
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') {
       navigate('/admin');
       return;
     }
+    if (isNewProduct) {
+      setLoading(false);
+      setProduct({ isNew: true });
+      return;
+    }
     const idNum = productId ? parseInt(productId, 10) : null;
-    if (!idNum) {
+    if (!idNum || isNaN(idNum)) {
       navigate('/admin');
       return;
     }
-    const p = getProductById(idNum);
-    if (!p) {
-      setMessage({ type: 'error', text: 'Product not found.' });
-      return;
-    }
-    setProduct(p);
-    const imageUrls = p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls : (p.image ? [p.image] : ['']);
-    setForm({
-      title: p.title || '',
-      category: p.category || 'tea',
-      price: p.price != null ? String(p.price) : '',
-      originalPrice: p.originalPrice != null ? String(p.originalPrice) : '',
-      description: p.description || '',
-      images: imageUrls.length ? imageUrls : [''],
-      inStock: p.inStock !== false,
-      badge: p.badge || '',
-      productType: p.productType || '',
-      rating: p.rating != null ? String(p.rating) : '',
-      reviews: p.reviews != null ? String(p.reviews) : ''
-    });
-  }, [user, productId, navigate]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        let p = null;
+        if (token) {
+          try {
+            p = await fetchProductByIdFromApi(idNum);
+          } catch (e) {
+            console.warn('Product API failed, trying local:', e);
+          }
+        }
+        if (!p) p = getProductById(idNum);
+        if (cancelled) return;
+        if (!p) {
+          setMessage({ type: 'error', text: 'Product not found.' });
+          setLoading(false);
+          return;
+        }
+        setProduct(p);
+        const imageUrls = p.imageUrls && p.imageUrls.length > 0 ? p.imageUrls : (p.image ? [p.image] : ['']);
+        setForm({
+          title: p.title || '',
+          category: p.category || 'tea',
+          price: p.price != null ? String(p.price) : '',
+          originalPrice: p.originalPrice != null ? String(p.originalPrice) : '',
+          description: p.description || '',
+          images: imageUrls.length ? imageUrls : [''],
+          isActive: p.inStock !== false && p.isActive !== false,
+          isBestSeller: p.isBestSeller === true,
+          rating: p.rating != null ? String(p.rating) : '',
+          reviews: p.reviews != null ? String(p.reviews) : ''
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [user, productId, isNewProduct, navigate, token, location.pathname]);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -110,43 +137,65 @@ const AdminEditProduct = () => {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
-      const idNum = product.id;
       const imageUrls = (form.images || []).map(u => (u || '').trim()).filter(Boolean);
-      const primaryImage = imageUrls[0] || product.image || '';
-      const updated = {
-        ...product,
+      const payload = {
         title: form.title.trim(),
+        name: form.title.trim(),
         category: form.category,
         price: parseFloat(form.price),
+        currentPrice: parseFloat(form.price),
         originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
         description: form.description.trim(),
-        image: primaryImage,
-        imageUrls: imageUrls.length > 0 ? imageUrls : (product.image ? [product.image] : []),
-        inStock: form.inStock,
-        badge: form.badge.trim() || null,
-        productType: form.productType || null,
+        imageUrls: imageUrls.length > 0 ? imageUrls : [],
+        primaryImageIndex: 0,
+        isActive: form.isActive,
+        isBestSeller: form.isBestSeller,
         rating: form.rating ? parseFloat(form.rating) : 0,
-        reviews: form.reviews ? parseInt(form.reviews, 10) : 0
+        reviews: form.reviews ? parseInt(form.reviews, 10) : 0,
+        reviewCount: form.reviews ? parseInt(form.reviews, 10) : 0
       };
-      const list = getProducts().map(p => p.id === idNum ? updated : p);
-      saveProducts(list);
-      setMessage({ type: 'success', text: 'Product updated successfully.' });
-      setProduct(updated);
-      setTimeout(() => navigate('/admin'), 1500);
+
+      if (isNewProduct) {
+        if (!token) {
+          setMessage({ type: 'error', text: 'You must be logged in to add products.' });
+          setSaving(false);
+          return;
+        }
+        const created = await createProductApi(mapProductToApi(payload), token);
+        setMessage({ type: 'success', text: 'Product added successfully. It will appear in the shop.' });
+        setTimeout(() => navigate('/admin'), 1500);
+        return;
+      }
+
+      const idNum = product.id;
+      const updated = { ...product, ...payload };
+      if (token) {
+        await updateProductApi(idNum, mapProductToApi(updated), token);
+        setMessage({ type: 'success', text: 'Product updated successfully.' });
+        setProduct(updated);
+        setTimeout(() => navigate('/admin'), 1500);
+      } else {
+        const list = getProducts().map(p => p.id === idNum ? updated : p);
+        saveProducts(list);
+        setMessage({ type: 'success', text: 'Product updated successfully.' });
+        setProduct(updated);
+        setTimeout(() => navigate('/admin'), 1500);
+      }
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Failed to update product' });
+      setMessage({ type: 'error', text: err.message || (isNewProduct ? 'Failed to add product' : 'Failed to update product') });
     } finally {
       setSaving(false);
     }
   };
 
   if (user?.role !== 'ADMIN') return null;
-  if (!product) {
+  if (loading || (!product && !isNewProduct)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          {message.text && <p className="text-red-600 mb-4">{message.text}</p>}
-          <button onClick={() => navigate('/admin')} className="text-primary-600 hover:underline">Back to Admin</button>
+          {loading && <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mx-auto mb-4" />}
+          {!loading && message.text && <p className="text-red-600 mb-4">{message.text}</p>}
+          {!loading && <button onClick={() => navigate('/admin')} className="text-primary-600 hover:underline">Back to Admin</button>}
         </div>
       </div>
     );
@@ -165,12 +214,13 @@ const AdminEditProduct = () => {
           </button>
           <div className="flex items-center">
             <Shield className="h-6 w-6 text-primary-600 mr-2" />
-            <span className="text-sm font-medium text-gray-500">Admin – Edit Product</span>
+            <span className="text-sm font-medium text-gray-500">Admin – {isNewProduct ? 'Add Product' : 'Edit Product'}</span>
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Product: {product.title}</h1>
-        <p className="text-gray-600 mb-6">ID: {product.id}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{isNewProduct ? 'Add new product' : `Edit Product: ${product.title}`}</h1>
+        {!isNewProduct && <p className="text-gray-600 mb-6">ID: {product.id}</p>}
+        {isNewProduct && <p className="text-gray-600 mb-6">New products will appear on the shop page.</p>}
 
         {message.text && (
           <div className={`mb-6 p-4 rounded-md flex items-start ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
@@ -312,39 +362,27 @@ const AdminEditProduct = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product type (optional)</label>
-            <select
-              value={form.productType}
-              onChange={(e) => handleChange('productType', e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-            >
-              {PRODUCT_TYPES.map(t => (
-                <option key={t || 'none'} value={t}>{t || '—'}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Badge (optional)</label>
-            <input
-              type="text"
-              value={form.badge}
-              onChange={(e) => handleChange('badge', e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g. Best Seller, New"
-            />
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="inStock"
-              checked={form.inStock}
-              onChange={(e) => handleChange('inStock', e.target.checked)}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label htmlFor="inStock" className="ml-2 block text-sm text-gray-700">In stock</label>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={form.isActive}
+                onChange={(e) => handleChange('isActive', e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">Active (visible in shop)</label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isBestSeller"
+                checked={form.isBestSeller}
+                onChange={(e) => handleChange('isBestSeller', e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isBestSeller" className="ml-2 block text-sm text-gray-700">Best seller</label>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -361,7 +399,7 @@ const AdminEditProduct = () => {
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
             >
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Save changes'}
+              {saving ? (isNewProduct ? 'Adding...' : 'Saving...') : (isNewProduct ? 'Add product' : 'Save changes')}
             </button>
           </div>
         </form>

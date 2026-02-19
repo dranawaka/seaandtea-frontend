@@ -1,87 +1,217 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Users, Clock, ShoppingBag, Heart, Filter, Search, ArrowRight, Package, Truck, Shield, RefreshCw, Plus, Minus, X, Trash2 } from 'lucide-react';
-import { getProducts } from '../data/shopProducts';
+import { getProducts, fetchProductsPaginatedFromApi, mapProductFromApi } from '../data/shopProducts';
+import { useAuth } from '../context/AuthContext';
+import { getCartApi, addCartItemApi, updateCartItemApi, removeCartItemApi } from '../config/api';
+
+const PAGE_SIZE = 12;
 
 const Shop = () => {
+  const { token, isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [cart, setCart] = useState([]);
+  const [cartTotalAmount, setCartTotalAmount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    loadProducts(page, selectedCategory, searchTerm);
+  }, [page, selectedCategory, searchTerm]);
 
-  const loadProducts = async () => {
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      loadCartFromApi();
+    }
+  }, [isAuthenticated, token]);
+
+  const loadProducts = async (pageNum = 0, category = 'all', term = '') => {
     try {
-      setProducts(getProducts());
+      setLoading(true);
+      const data = await fetchProductsPaginatedFromApi({
+        category: category === 'all' ? undefined : category,
+        searchTerm: (term || '').trim() || undefined,
+        page: pageNum,
+        size: PAGE_SIZE,
+        sortBy: 'createdAt',
+        sortDirection: 'desc'
+      });
+      setProducts(data.content || []);
+      setTotalPages(data.totalPages ?? 0);
+      setTotalElements(data.totalElements ?? 0);
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.warn('Products API unavailable, using local:', error);
+      const local = getProducts();
+      setProducts(local);
+      setTotalPages(1);
+      setTotalElements(local.length);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    setSearchTerm(searchInput.trim());
+    setPage(0);
+  };
+
+  const loadCartFromApi = async () => {
+    if (!token) return;
+    try {
+      setCartLoading(true);
+      const data = await getCartApi(token);
+      const items = data?.items ?? [];
+      const mapped = items.map((it) => ({
+        id: it.productId,
+        title: it.productName || '',
+        image: it.imageUrl || '',
+        price: Number(it.unitPrice) || 0,
+        quantity: Number(it.quantity) || 1,
+        lineTotal: Number(it.lineTotal) || 0,
+        cartItemId: it.cartItemId
+      }));
+      setCart(mapped);
+      setCartTotalAmount(Number(data?.totalAmount) ?? 0);
+    } catch (err) {
+      console.warn('Cart API unavailable:', err);
+      setCart([]);
+      setCartTotalAmount(0);
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
   const categories = [
     { id: 'all', name: 'All Products' },
-    { id: 'sea', name: 'Sea & Beach Wears and Handy Crafts', featured: true },
-    { id: 'tea', name: 'Premium Tea', featured: true },
+    { id: 'sea', name: 'Sea & Beach Wears and Handy Crafts' },
+    { id: 'tea', name: 'Premium Tea' },
     { id: 'spices', name: 'Spices & Food' },
     { id: 'clothing', name: 'Clothing & Textiles' },
     { id: 'souvenirs', name: 'Souvenirs & Crafts' },
-    { id: 'beauty', name: 'Beauty & Wellness' }
+    { id: 'beauty', name: 'Beauty & Wellness' },
+    { id: 'other', name: 'Other' }
   ];
 
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const mapCartResponse = (data) => {
+    const items = data?.items ?? [];
+    return items.map((it) => ({
+      id: it.productId,
+      title: it.productName || '',
+      image: it.imageUrl || '',
+      price: Number(it.unitPrice) || 0,
+      quantity: Number(it.quantity) || 1,
+      lineTotal: Number(it.lineTotal) || 0,
+      cartItemId: it.cartItemId
+    }));
+  };
 
-  // Cart operations
-  const addToCart = (product) => {
+  const addToCart = async (product) => {
+    if (token) {
+      try {
+        setCartLoading(true);
+        const data = await addCartItemApi(product.id, 1, token);
+        setCart(mapCartResponse(data));
+        setCartTotalAmount(Number(data?.totalAmount) ?? 0);
+      } catch (err) {
+        console.warn('Add to cart API failed, updating locally:', err);
+        updateCartLocal(product, 1);
+      } finally {
+        setCartLoading(false);
+      }
+    } else {
+      updateCartLocal(product, 1);
+    }
+  };
+
+  const updateCartLocal = (product, delta) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
       if (existingItem) {
         return prevCart.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + delta }
             : item
         );
-      } else {
-        return [...prevCart, { ...product, quantity: 1 }];
       }
+      return [...prevCart, { id: product.id, title: product.title, image: product.image, price: product.price, quantity: 1, cartItemId: null }];
     });
+    setCartTotalAmount(prev => prev + (product.price || 0) * (delta > 0 ? 1 : -1));
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+  const removeFromCart = async (productId, cartItemId) => {
+    if (token && cartItemId) {
+      try {
+        setCartLoading(true);
+        const data = await removeCartItemApi(cartItemId, token);
+        if (data) {
+          setCart(mapCartResponse(data));
+          setCartTotalAmount(Number(data?.totalAmount) ?? 0);
+        } else {
+          await loadCartFromApi();
+        }
+      } catch (err) {
+        console.warn('Remove from cart API failed:', err);
+        setCart(prev => prev.filter(item => item.id !== productId));
+        setCartTotalAmount(prev => prev - (cart.find(i => i.id === productId)?.lineTotal ?? 0));
+      } finally {
+        setCartLoading(false);
+      }
+    } else {
+      const item = cart.find(i => i.id === productId);
+      setCart(prev => prev.filter(i => i.id !== productId));
+      setCartTotalAmount(prev => prev - (item ? item.price * item.quantity : 0));
+    }
   };
 
-  const updateQuantity = (productId, newQuantity) => {
+  const updateQuantity = async (productId, newQuantity, cartItemId) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      const item = cart.find(i => i.id === productId);
+      removeFromCart(productId, item?.cartItemId);
       return;
     }
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
+    if (token && cartItemId) {
+      try {
+        setCartLoading(true);
+        const data = await updateCartItemApi(cartItemId, newQuantity, token);
+        setCart(mapCartResponse(data));
+        setCartTotalAmount(Number(data?.totalAmount) ?? 0);
+      } catch (err) {
+        console.warn('Update cart API failed:', err);
+        setCart(prev =>
+          prev.map(item =>
+            item.id === productId ? { ...item, quantity: newQuantity, lineTotal: item.price * newQuantity } : item
+          )
+        );
+        setCartTotalAmount(prev => prev - (cart.find(i => i.id === productId)?.lineTotal ?? 0) + (cart.find(i => i.id === productId)?.price ?? 0) * newQuantity);
+      } finally {
+        setCartLoading(false);
+      }
+    } else {
+      setCart(prev =>
+        prev.map(item =>
+          item.id === productId ? { ...item, quantity: newQuantity, lineTotal: item.price * newQuantity } : item
+        )
+      );
+      const item = cart.find(i => i.id === productId);
+      if (item) setCartTotalAmount(prev => prev - item.price * item.quantity + item.price * newQuantity);
+    }
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    if (isAuthenticated && token && cart.length > 0 && cartTotalAmount > 0) return cartTotalAmount;
+    return cart.reduce((total, item) => total + (item.lineTotal ?? item.price * item.quantity), 0);
   };
 
   const getCartItemCount = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
+    return cart.reduce((total, item) => total + (item.quantity || 0), 0);
   };
 
   const shopFeatures = [
@@ -174,15 +304,15 @@ const Shop = () => {
         </div>
       </section>
 
-      {/* Featured Categories Section */}
+      {/* Categories Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Featured Collections
+              Collections
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover our curated Sea & Beach Wears and Handy Crafts, plus Premium Tea collections
+              Browse by category
             </p>
           </div>
           
@@ -218,11 +348,11 @@ const Shop = () => {
             >
               <div className="relative h-80 bg-gradient-to-br from-green-600 to-green-800">
                 <img 
-                  src="https://images.unsplash.com/photo-1594736797933-d0401ba890fe?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                  alt="Premium Tea"
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                  src="https://images.unsplash.com/photo-1571934811356-5cc061b6821f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85"
+                  alt="Premium Tea - Ceylon tea from Sri Lankan highlands"
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/50 transition-all duration-300"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-white">
                     <h3 className="text-3xl font-bold mb-2">Premium Tea</h3>
@@ -241,30 +371,32 @@ const Shop = () => {
       {/* Search and Filter Section */}
       <section className="py-8 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 max-w-md">
-              <div className="relative">
+          <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex-1 max-w-md flex gap-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
+              <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700">
+                Search
+              </button>
             </div>
             
             <div className="flex gap-2 flex-wrap">
               {categories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                  type="button"
+                  onClick={() => { setSelectedCategory(category.id); setPage(0); }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
                     selectedCategory === category.id
                       ? 'bg-purple-600 text-white'
-                      : category.featured
-                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -272,7 +404,7 @@ const Shop = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </form>
         </div>
       </section>
 
@@ -281,10 +413,10 @@ const Shop = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Featured Products
+              Products
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Handpicked selection of authentic Sri Lankan products
+              Authentic Sri Lankan products
             </p>
           </div>
           
@@ -295,7 +427,7 @@ const Shop = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <div key={product.id} className="card overflow-hidden hover:shadow-xl transition-shadow duration-300">
                   <div className="relative">
                     <img 
@@ -364,9 +496,11 @@ const Shop = () => {
                           </span>
                         )}
                       </div>
-                      {product.originalPrice && (
+                      {(product.discountPercentage != null || product.originalPrice) && (
                         <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
-                          {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                          {product.discountPercentage != null
+                            ? `${product.discountPercentage}% OFF`
+                            : `${Math.round((1 - product.price / product.originalPrice) * 100)}% OFF`}
                         </span>
                       )}
                     </div>
@@ -393,14 +527,40 @@ const Shop = () => {
               ))}
             </div>
           )}
+
+          {totalPages > 1 && !loading && (
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-4 py-2 border border-gray-300 rounded-lg font-medium disabled:opacity-50 hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {page + 1} of {totalPages} ({totalElements} products)
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg font-medium disabled:opacity-50 hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
           
-          {filteredProducts.length === 0 && !loading && (
+          {products.length === 0 && !loading && (
             <div className="text-center">
               <p className="text-gray-500 text-lg mb-4">No products found matching your criteria.</p>
               <button 
                 onClick={() => {
+                  setSearchInput('');
                   setSearchTerm('');
                   setSelectedCategory('all');
+                  setPage(0);
                 }}
                 className="btn-primary"
               >
@@ -478,8 +638,9 @@ const Shop = () => {
                           </p>
                           <div className="flex items-center space-x-2 mt-2">
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="p-1 rounded-full hover:bg-gray-100"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1, item.cartItemId)}
+                              disabled={cartLoading}
+                              className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
@@ -487,8 +648,9 @@ const Shop = () => {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="p-1 rounded-full hover:bg-gray-100"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1, item.cartItemId)}
+                              disabled={cartLoading}
+                              className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
                             >
                               <Plus className="h-4 w-4" />
                             </button>
@@ -499,8 +661,9 @@ const Shop = () => {
                             ${(item.price * item.quantity).toFixed(2)}
                           </p>
                           <button
-                            onClick={() => removeFromCart(item.id)}
-                            className="text-red-500 hover:text-red-700 mt-1"
+                            onClick={() => removeFromCart(item.id, item.cartItemId)}
+                            disabled={cartLoading}
+                            className="text-red-500 hover:text-red-700 mt-1 disabled:opacity-50"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

@@ -45,6 +45,7 @@ function App() {
               <Route path="/guide/:id" element={<GuideProfileViewer />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />
+              <Route path="/admin/product/new" element={<AdminEditProduct />} />
               <Route path="/admin/product/:id/edit" element={<AdminEditProduct />} />
               <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />

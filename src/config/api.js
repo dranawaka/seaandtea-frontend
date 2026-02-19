@@ -1,7 +1,10 @@
 // API Configuration
 // Swagger UI: http://localhost:8080/api/v1/swagger-ui/index.html
+const defaultBaseUrl = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:8080/api/v1'
+  : 'https://seaandtea-backend-production.up.railway.app/api/v1';
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://seaandtea-backend-production.up.railway.app/api/v1',
+  BASE_URL: process.env.REACT_APP_API_BASE_URL || defaultBaseUrl,
   TIMEOUT: 10000, // 10 seconds
   ENDPOINTS: {
     AUTH: {
@@ -42,6 +45,7 @@ export const API_CONFIG = {
       USER_BAN: '/admin/users/:id/ban',
       USER_UNBAN: '/admin/users/:id/unban',
       USER_REMOVE: '/admin/users/:id',
+      USER_RESET_REVIEWS: '/admin/users/:id/reviews/reset',
       STATISTICS: '/admin/statistics',
       UNVERIFIED_GUIDES: '/guides?verificationStatus=PENDING',
       VERIFY_GUIDE: '/guides/:id/verify'
@@ -73,6 +77,18 @@ export const API_CONFIG = {
       CREATE: '/reviews',
       UPDATE: '/reviews/:id',
       DELETE: '/reviews/:id'
+    },
+    PRODUCTS: {
+      LIST: '/products',
+      DETAIL: '/products/:id',
+      CREATE: '/products',
+      UPDATE: '/products/:id',
+      DELETE: '/products/:id'
+    },
+    CART: {
+      MINE: '/cart',
+      ITEMS: '/cart/items',
+      ITEM_BY_ID: '/cart/items/:id'
     }
   }
 };
@@ -526,6 +542,304 @@ export const deleteReview = async (reviewId, token) => {
     return response.status === 204 ? null : await response.json();
   } catch (error) {
     logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.DELETE, { id: reviewId }), null, null, error);
+    throw error;
+  }
+};
+
+// --- Admin user (view / reset reviews) ---
+export const getAdminUserById = async (userId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.USER_BY_ID, { id: userId });
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch user: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const resetUserReviews = async (userId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.USER_RESET_REVIEWS, { id: userId });
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'POST', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to reset reviews: ${response.status}`);
+  }
+  return response.status === 204 ? null : await response.json();
+};
+
+// --- Products API ---
+
+/**
+ * List products with optional filters and pagination (public).
+ * @param {{ category?: string, searchTerm?: string, page?: number, size?: number, sortBy?: string, sortDirection?: string }} params
+ * @returns {Promise<{ content: array, totalPages: number, totalElements: number, ... }>}
+ */
+export const listProductsApi = async (params = {}) => {
+  try {
+    let url = buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.LIST);
+    const search = new URLSearchParams();
+    const { category, searchTerm, page = 0, size = 10, sortBy, sortDirection, sort } = params;
+    if (category && category !== 'all') search.append('category', category);
+    if (searchTerm && searchTerm.trim()) search.append('searchTerm', searchTerm.trim());
+    search.append('page', page);
+    search.append('size', size);
+    if (sort != null && sort !== '') {
+      search.append('sort', sort);
+    } else if (sortBy != null || sortDirection != null) {
+      search.append('sortBy', sortBy ?? 'createdAt');
+      search.append('sortDirection', sortDirection ?? 'desc');
+    } else {
+      search.append('sort', 'createdAt,desc');
+    }
+    url += `?${search.toString()}`;
+    logApiCall('GET', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      let errMessage = `Failed to fetch products: ${response.status}`;
+      try {
+        const body = await response.json();
+        if (body.message) errMessage = body.message;
+        else if (body.error) errMessage = `${response.status} – ${body.error}`;
+      } catch (_) {
+        const text = await response.text();
+        if (text && text.length < 200) errMessage = text;
+      }
+      throw new Error(errMessage);
+    }
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.LIST), null, null, error);
+    throw error;
+  }
+};
+
+/** Best sellers (public). Returns same paginated shape as listProductsApi. */
+export const getBestSellersApi = async (page = 0, size = 10) => {
+  try {
+    let url = `${API_CONFIG.BASE_URL}/products/best-sellers?page=${page}&size=${size}`;
+    logApiCall('GET', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch best sellers: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', `${API_CONFIG.BASE_URL}/products/best-sellers`, null, null, error);
+    throw error;
+  }
+};
+
+/** Products by category (public). Returns same paginated shape. */
+export const getProductsByCategoryApi = async (category, page = 0, size = 10) => {
+  try {
+    let url = `${API_CONFIG.BASE_URL}/products/category/${encodeURIComponent(category)}?page=${page}&size=${size}`;
+    logApiCall('GET', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products by category: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', `${API_CONFIG.BASE_URL}/products/category/${category}`, null, null, error);
+    throw error;
+  }
+};
+
+/** Legacy: fetch all products (first page, no filter). Returns content array for backward compat. */
+export const getProductsApi = async () => {
+  const data = await listProductsApi({ page: 0, size: 100 });
+  return Array.isArray(data.content) ? data.content : (data.content ?? []);
+};
+
+export const getProductByIdApi = async (productId) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.DETAIL, { id: productId });
+    logApiCall('GET', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Failed to fetch product: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.DETAIL, { id: productId }), null, null, error);
+    throw error;
+  }
+};
+
+export const createProductApi = async (body, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.CREATE);
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('POST', url, body);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to create product: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('POST', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('POST', buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.CREATE), body, null, error);
+    throw error;
+  }
+};
+
+export const updateProductApi = async (productId, body, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.UPDATE, { id: productId });
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('PUT', url, body);
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to update product: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('PUT', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('PUT', buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.UPDATE, { id: productId }), body, null, error);
+    throw error;
+  }
+};
+
+export const deleteProductApi = async (productId, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.DELETE, { id: productId });
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('DELETE', url);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers
+    });
+    if (!response.ok && response.status !== 204) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to delete product: ${response.status}`);
+    }
+    logApiCall('DELETE', url, null, response);
+    return response.status === 204 ? null : (response.headers.get('content-length') === '0' ? null : await response.json().catch(() => null));
+  } catch (error) {
+    logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.PRODUCTS.DELETE, { id: productId }), null, null, error);
+    throw error;
+  }
+};
+
+// --- Cart API ---
+
+export const getCartApi = async (token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.CART.MINE);
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('GET', url);
+    const response = await fetch(url, { method: 'GET', headers });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cart: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    logApiCall('GET', url, null, response);
+    return data;
+  } catch (error) {
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.CART.MINE), null, null, error);
+    throw error;
+  }
+};
+
+export const addCartItemApi = async (productId, quantity, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEMS);
+    const headers = getDefaultHeaders(true, token);
+    const body = { productId: Number(productId), quantity: Number(quantity) || 1 };
+    logApiCall('POST', url, body);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to add to cart: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('POST', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('POST', buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEMS), { productId, quantity }, null, error);
+    throw error;
+  }
+};
+
+export const updateCartItemApi = async (itemId, quantity, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEM_BY_ID, { id: itemId });
+    const headers = getDefaultHeaders(true, token);
+    const body = { quantity: Number(quantity) };
+    logApiCall('PUT', url, body);
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to update cart item: ${response.status}`);
+    }
+    const data = await response.json();
+    logApiCall('PUT', url, body, response);
+    return data;
+  } catch (error) {
+    logApiCall('PUT', buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEM_BY_ID, { id: itemId }), { quantity }, null, error);
+    throw error;
+  }
+};
+
+export const removeCartItemApi = async (itemId, token) => {
+  try {
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEM_BY_ID, { id: itemId });
+    const headers = getDefaultHeaders(true, token);
+    logApiCall('DELETE', url);
+    const response = await fetch(url, { method: 'DELETE', headers });
+    if (!response.ok && response.status !== 204) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `Failed to remove cart item: ${response.status}`);
+    }
+    logApiCall('DELETE', url, null, response);
+    // API returns 200 with full cart body; 204 = no content
+    if (response.status === 204) return null;
+    return await response.json().catch(() => null);
+  } catch (error) {
+    logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEM_BY_ID, { id: itemId }), null, null, error);
     throw error;
   }
 };
