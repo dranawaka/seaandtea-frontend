@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Calendar as CalendarIcon, Users, DollarSign, Clock, Check, X, Heart, Share2, ThumbsUp, Edit2, Trash2 } from 'lucide-react';
-import { getTourById, getTourReviews, createReview, updateReview, deleteReview, getGuideProfileById } from '../config/api';
+import { MapPin, Star, Calendar as CalendarIcon, Users, DollarSign, Clock, Check, X, Heart, Share2 } from 'lucide-react';
+import { getTourById, getTourReviews, getReviewsRating, submitReview, listBookings, getGuideProfileById } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const TourDetail = () => {
@@ -16,10 +16,12 @@ const TourDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   const [reviews, setReviews] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewError, setReviewError] = useState(null);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', recommendToOthers: true });
-  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ bookingId: null, rating: 5, comment: '' });
+  const [completedBookings, setCompletedBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const normalizeTour = (t) => {
@@ -89,9 +91,48 @@ const TourDetail = () => {
     loadTourData();
   }, [id]);
 
+  const loadRatingSummary = useCallback(async () => {
+    if (!tour?.id) return;
+    try {
+      const data = await getReviewsRating({ tourId: Number(tour.id) });
+      setRatingSummary(data);
+    } catch {
+      setRatingSummary(null);
+    }
+  }, [tour?.id]);
+
   useEffect(() => {
-    if (tour?.id) loadReviews();
-  }, [tour?.id, loadReviews]);
+    if (tour?.id) {
+      loadReviews();
+      loadRatingSummary();
+    }
+  }, [tour?.id, loadReviews, loadRatingSummary]);
+
+  const loadCompletedBookingsForReview = useCallback(async () => {
+    if (!token || !tour?.id) return;
+    setBookingsLoading(true);
+    try {
+      const bookings = await listBookings(token);
+      const tourIdNum = Number(tour.id);
+      const completed = (bookings || []).filter(
+        (b) =>
+          String(b.status || '').toUpperCase() === 'COMPLETED' &&
+          (Number(b.tourId) === tourIdNum || Number(b.tour?.id) === tourIdNum)
+      );
+      setCompletedBookings(completed);
+      if (completed.length === 1) setReviewForm((f) => ({ ...f, bookingId: completed[0].id }));
+    } catch {
+      setCompletedBookings([]);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [token, tour?.id]);
+
+  useEffect(() => {
+    if (activeTab === 'reviews' && isAuthenticated && token && tour?.id) {
+      loadCompletedBookingsForReview();
+    }
+  }, [activeTab, isAuthenticated, token, tour?.id, loadCompletedBookingsForReview]);
 
   const handleBooking = () => {
     alert('Booking functionality would be implemented here. This would typically redirect to a payment system or booking form.');
@@ -99,77 +140,40 @@ const TourDetail = () => {
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!token || !tour?.id) return;
+    if (!token || !reviewForm.bookingId) {
+      setReviewError('Please select a completed booking to review.');
+      return;
+    }
     setSubmittingReview(true);
     setReviewError(null);
     try {
-      if (editingReviewId) {
-        await updateReview(editingReviewId, {
-          rating: reviewForm.rating,
-          comment: reviewForm.comment,
-          recommendToOthers: reviewForm.recommendToOthers
-        }, token);
-        setEditingReviewId(null);
-      } else {
-        await createReview({
-          tourId: Number(tour.id),
+      await submitReview(
+        {
+          bookingId: Number(reviewForm.bookingId),
           rating: Number(reviewForm.rating),
-          comment: reviewForm.comment.trim(),
-          recommendToOthers: reviewForm.recommendToOthers
-        }, token);
-      }
-      setReviewForm({ rating: 5, comment: '', recommendToOthers: true });
+          comment: (reviewForm.comment || '').trim()
+        },
+        token
+      );
+      setReviewForm({ bookingId: null, rating: 5, comment: '' });
       await loadReviews();
+      await loadRatingSummary();
       await loadTourData();
     } catch (err) {
-      setReviewError(err.message || 'Failed to save review');
+      setReviewError(err.message || 'Failed to submit review');
     } finally {
       setSubmittingReview(false);
     }
   };
 
-  const handleEditReview = (review) => {
-    setEditingReviewId(review.id);
-    setReviewForm({
-      rating: review.rating ?? 5,
-      comment: review.comment ?? '',
-      recommendToOthers: review.recommendToOthers ?? true
-    });
-    setActiveTab('reviews');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingReviewId(null);
-    setReviewForm({ rating: 5, comment: '', recommendToOthers: true });
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    if (!token || !window.confirm('Delete this review?')) return;
-    try {
-      await deleteReview(reviewId, token);
-      await loadReviews();
-    } catch (err) {
-      setReviewError(err.message || 'Failed to delete review');
-    }
-  };
-
-  const isOwnReview = (review) => {
-    const uid = user?.id ?? user?.userId;
-    const rid = review.userId ?? review.user?.id;
-    return uid != null && rid != null && String(uid) === String(rid);
-  };
-
   const reviewDisplayName = (review) => {
-    const u = review.user;
-    if (u?.firstName) return [u.firstName, u.lastName].filter(Boolean).join(' ');
-    return review.userName || review.authorName || 'Traveler';
+    return review.touristName || (review.user?.firstName ? [review.user?.firstName, review.user?.lastName].filter(Boolean).join(' ') : null) || review.userName || review.authorName || 'Traveler';
   };
 
   const reviewDate = (review) => {
     const d = review.createdAt ?? review.date;
     if (!d) return '';
-    const date = new Date(d);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
   const calculateTotalPrice = () => {
@@ -229,8 +233,8 @@ const TourDetail = () => {
                 </span>
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-secondary-400 mr-1" />
-                  <span className="font-medium">{tour.rating}</span>
-                  <span className="ml-1">({tour.reviews} reviews)</span>
+                  <span className="font-medium">{(ratingSummary?.averageRating ?? tour.rating ?? 0).toFixed(1)}</span>
+                  <span className="ml-1">({ratingSummary?.totalCount ?? tour.reviews ?? 0} reviews)</span>
                 </div>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -461,65 +465,95 @@ const TourDetail = () => {
                           <div className="flex items-center">
                             <Star className="h-8 w-8 text-secondary-500 mr-3" />
                             <div>
-                              <div className="text-2xl font-bold text-gray-900">{tour.rating ? Number(tour.rating).toFixed(1) : '0'}</div>
+                              <div className="text-2xl font-bold text-gray-900">{(ratingSummary?.averageRating ?? tour.rating ?? 0).toFixed(1)}</div>
                               <div className="text-gray-600">out of 5 stars</div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-lg font-semibold text-gray-900">{tour.reviews ?? reviews.length}</div>
+                            <div className="text-lg font-semibold text-gray-900">{ratingSummary?.totalCount ?? tour.reviews ?? reviews.length}</div>
                             <div className="text-gray-600">total reviews</div>
                           </div>
                         </div>
+                        {ratingSummary?.ratingBreakdown && (
+                          <div className="mt-4 pt-4 border-t border-gray-100">
+                            <div className="text-sm font-medium text-gray-700 mb-2">Rating distribution</div>
+                            <div className="space-y-1">
+                              {[5, 4, 3, 2, 1].map((star) => {
+                                const count = ratingSummary.ratingBreakdown[String(star)] ?? 0;
+                                const total = ratingSummary.totalCount || 1;
+                                return (
+                                  <div key={star} className="flex items-center gap-2">
+                                    <span className="text-gray-600 w-6">{star} ★</span>
+                                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                      <div className="h-full bg-secondary-500 rounded-full" style={{ width: `${(count / total) * 100}%` }} />
+                                    </div>
+                                    <span className="text-gray-500 text-sm w-8">{count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {isAuthenticated && (
+                      {isAuthenticated && token && (
                         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{editingReviewId ? 'Edit your review' : 'Write a review'}</h3>
-                          <form onSubmit={handleSubmitReview} className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-                              <div className="flex gap-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <button
-                                    key={star}
-                                    type="button"
-                                    onClick={() => setReviewForm((f) => ({ ...f, rating: star }))}
-                                    className="p-1 focus:outline-none"
-                                  >
-                                    <Star className={`h-8 w-8 ${reviewForm.rating >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
-                                  </button>
-                                ))}
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Write a review</h3>
+                          {bookingsLoading ? (
+                            <div className="flex justify-center py-4">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+                            </div>
+                          ) : completedBookings.length === 0 ? (
+                            <p className="text-gray-600">You can leave a review after completing this tour. Book the tour and come back once it&apos;s completed.</p>
+                          ) : (
+                            <form onSubmit={handleSubmitReview} className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Select booking to review</label>
+                                <select
+                                  required
+                                  className="input-field w-full"
+                                  value={reviewForm.bookingId ?? ''}
+                                  onChange={(e) => setReviewForm((f) => ({ ...f, bookingId: e.target.value ? Number(e.target.value) : null }))}
+                                >
+                                  <option value="">Choose a completed booking...</option>
+                                  {completedBookings.map((b) => (
+                                    <option key={b.id} value={b.id}>
+                                      {b.tour?.title || `Booking #${b.id}`} {b.tourDate ? ` – ${new Date(b.tourDate).toLocaleDateString()}` : ''}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Comment (optional)</label>
-                              <textarea
-                                value={reviewForm.comment}
-                                onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
-                                rows={3}
-                                className="input-field w-full"
-                                placeholder="Share your experience..."
-                              />
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                type="checkbox"
-                                id="recommend"
-                                checked={reviewForm.recommendToOthers}
-                                onChange={(e) => setReviewForm((f) => ({ ...f, recommendToOthers: e.target.checked }))}
-                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                              />
-                              <label htmlFor="recommend" className="ml-2 text-sm text-gray-700">I recommend this tour</label>
-                            </div>
-                            <div className="flex gap-2">
-                              <button type="submit" disabled={submittingReview} className="btn-primary">
-                                {submittingReview ? 'Saving...' : (editingReviewId ? 'Update review' : 'Submit review')}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                                <div className="flex gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() => setReviewForm((f) => ({ ...f, rating: star }))}
+                                      className="p-1 focus:outline-none"
+                                    >
+                                      <Star className={`h-8 w-8 ${reviewForm.rating >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Comment (optional, max 2000 characters)</label>
+                                <textarea
+                                  value={reviewForm.comment}
+                                  onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+                                  rows={3}
+                                  maxLength={2000}
+                                  className="input-field w-full"
+                                  placeholder="Share your experience..."
+                                />
+                              </div>
+                              <button type="submit" disabled={submittingReview || !reviewForm.bookingId} className="btn-primary">
+                                {submittingReview ? 'Submitting...' : 'Submit review'}
                               </button>
-                              {editingReviewId && (
-                                <button type="button" onClick={handleCancelEdit} className="btn-outline">Cancel</button>
-                              )}
-                            </div>
-                          </form>
+                            </form>
+                          )}
                         </div>
                       )}
 
@@ -551,20 +585,8 @@ const TourDetail = () => {
                                       <Star key={star} className={`h-4 w-4 ${(review.rating ?? 0) >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
                                     ))}
                                   </div>
-                                  {review.recommendToOthers && (
-                                    <span className="flex items-center text-sm text-green-600 ml-2">
-                                      <ThumbsUp className="h-4 w-4 mr-0.5" /> Recommends
-                                    </span>
-                                  )}
-                                  {isOwnReview(review) && (
-                                    <div className="flex gap-1 ml-2">
-                                      <button type="button" onClick={() => handleEditReview(review)} className="p-1.5 text-gray-500 hover:text-primary-600 rounded" title="Edit">
-                                        <Edit2 className="h-4 w-4" />
-                                      </button>
-                                      <button type="button" onClick={() => handleDeleteReview(review.id)} className="p-1.5 text-gray-500 hover:text-red-600 rounded" title="Delete">
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </div>
+                                  {review.isVerified && (
+                                    <span className="text-sm text-green-600 font-medium">Verified</span>
                                   )}
                                 </div>
                               </div>

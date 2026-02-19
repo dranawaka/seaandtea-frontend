@@ -72,11 +72,9 @@ export const API_CONFIG = {
       UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture'
     },
     REVIEWS: {
-      TOUR_REVIEWS: '/reviews/tour/:tourId',
-      GUIDE_REVIEWS: '/reviews/guide/:guideId',
-      CREATE: '/reviews',
-      UPDATE: '/reviews/:id',
-      DELETE: '/reviews/:id'
+      LIST: '/reviews',
+      RATING: '/reviews/rating',
+      CREATE: '/reviews'
     },
     PRODUCTS: {
       LIST: '/products',
@@ -412,68 +410,98 @@ export const getGuideTours = async (guideId, page = 0, size = 10, token = null) 
   }
 };
 
-// --- Reviews API ---
+// --- Reviews API (v1: booking-based, tour/guide listing and rating) ---
 
-export const getTourReviews = async (tourId, page = 0, size = 10, sort = 'createdAt,desc') => {
+/**
+ * List reviews by tour or guide (paginated). Provide either tourId or guideId.
+ * @param {{ tourId?: number, guideId?: number, page?: number, size?: number }} params
+ * @returns {Promise<{ content: array, totalPages: number, totalElements: number, ... }>}
+ */
+export const getReviews = async ({ tourId, guideId, page = 0, size = 10 } = {}) => {
+  if (tourId == null && guideId == null) {
+    throw new Error('Either tourId or guideId is required');
+  }
   try {
-    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.TOUR_REVIEWS, { tourId });
-    const params = new URLSearchParams({ page, size, sort });
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.LIST);
+    const params = new URLSearchParams();
+    if (tourId != null) params.set('tourId', String(tourId));
+    if (guideId != null) params.set('guideId', String(guideId));
+    params.set('page', String(page));
+    params.set('size', String(size));
     const fullUrl = `${url}?${params.toString()}`;
     logApiCall('GET', fullUrl);
     const response = await fetch(fullUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
+    if (response.status === 400) {
+      return { content: [], totalElements: 0, totalPages: 0, first: true, last: true };
+    }
     if (response.status === 404) {
-      return { content: [], totalElements: 0, totalPages: 0 };
+      return { content: [], totalElements: 0, totalPages: 0, first: true, last: true };
     }
     if (!response.ok) {
-      throw new Error(`Failed to fetch tour reviews: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch reviews: ${response.status} ${response.statusText}`);
     }
     const data = await response.json();
     logApiCall('GET', fullUrl, null, response);
     return data;
   } catch (error) {
-    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.TOUR_REVIEWS, { tourId }), null, null, error);
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.LIST), null, null, error);
     throw error;
   }
 };
 
-export const getGuideReviews = async (guideId, page = 0, size = 10, sort = 'createdAt,desc') => {
+/**
+ * Get overall rating and count for a tour or guide (and optional star breakdown).
+ * @param {{ tourId?: number, guideId?: number }} params
+ * @returns {Promise<{ averageRating: number, totalCount: number, ratingBreakdown?: object }>}
+ */
+export const getReviewsRating = async ({ tourId, guideId } = {}) => {
+  if (tourId == null && guideId == null) {
+    throw new Error('Either tourId or guideId is required');
+  }
   try {
-    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.GUIDE_REVIEWS, { guideId });
-    const params = new URLSearchParams({ page, size, sort });
+    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.RATING);
+    const params = new URLSearchParams();
+    if (tourId != null) params.set('tourId', String(tourId));
+    if (guideId != null) params.set('guideId', String(guideId));
     const fullUrl = `${url}?${params.toString()}`;
     logApiCall('GET', fullUrl);
     const response = await fetch(fullUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
-    if (response.status === 404) {
-      return { content: [], totalElements: 0, totalPages: 0 };
+    if (response.status === 400 || response.status === 404) {
+      return { averageRating: 0, totalCount: 0, ratingBreakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
     }
     if (!response.ok) {
-      throw new Error(`Failed to fetch guide reviews: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch rating: ${response.status} ${response.statusText}`);
     }
     const data = await response.json();
     logApiCall('GET', fullUrl, null, response);
     return data;
   } catch (error) {
-    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.GUIDE_REVIEWS, { guideId }), null, null, error);
+    logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.RATING), null, null, error);
     throw error;
   }
 };
 
-export const createReview = async (body, token) => {
+/**
+ * Submit a review for a completed booking. Auth required. One review per booking.
+ * @param {{ bookingId: number, rating: number, comment?: string }} body - rating 1-5, comment max 2000 chars
+ * @param {string} token - JWT
+ * @returns {Promise<{ id, rating, comment, touristName, isVerified, createdAt, tourId, guideId }>}
+ * @throws 409 if user has already reviewed this booking
+ */
+export const submitReview = async (body, token) => {
   try {
     const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.CREATE);
     const headers = getDefaultHeaders(true, token);
     const payload = {
-      ...(body.tourId != null && { tourId: Number(body.tourId) }),
-      ...(body.guideId != null && { guideId: Number(body.guideId) }),
-      rating: body.rating,
-      comment: body.comment != null ? String(body.comment) : '',
-      recommendToOthers: body.recommendToOthers != null ? Boolean(body.recommendToOthers) : true
+      bookingId: Number(body.bookingId),
+      rating: Math.min(5, Math.max(1, Number(body.rating) || 5)),
+      comment: body.comment != null ? String(body.comment).slice(0, 2000) : ''
     };
     logApiCall('POST', url, payload);
     const response = await fetch(url, {
@@ -481,8 +509,13 @@ export const createReview = async (body, token) => {
       headers,
       body: JSON.stringify(payload)
     });
+    if (response.status === 409) {
+      const errData = await response.json().catch(() => ({}));
+      const msg = errData.message || 'You have already reviewed this booking.';
+      throw new Error(msg);
+    }
     if (!response.ok) {
-      let errMessage = `Failed to create review (${response.status})`;
+      let errMessage = `Failed to submit review (${response.status})`;
       try {
         const errBody = await response.json();
         if (errBody.message) errMessage = errBody.message;
@@ -503,47 +536,22 @@ export const createReview = async (body, token) => {
   }
 };
 
-export const updateReview = async (reviewId, body, token) => {
-  try {
-    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.UPDATE, { id: reviewId });
-    const headers = getDefaultHeaders(true, token);
-    logApiCall('PUT', url, body);
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(errText || `Failed to update review: ${response.status}`);
-    }
-    const data = await response.json();
-    logApiCall('PUT', url, body, response);
-    return data;
-  } catch (error) {
-    logApiCall('PUT', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.UPDATE, { id: reviewId }), body, null, error);
-    throw error;
-  }
+/** List reviews for a tour (wrapper). */
+export const getTourReviews = async (tourId, page = 0, size = 10) => {
+  return getReviews({ tourId: Number(tourId), page, size });
 };
 
-export const deleteReview = async (reviewId, token) => {
-  try {
-    const url = buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.DELETE, { id: reviewId });
-    const headers = getDefaultHeaders(true, token);
-    logApiCall('DELETE', url);
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers
-    });
-    if (!response.ok && response.status !== 204) {
-      throw new Error(`Failed to delete review: ${response.status} ${response.statusText}`);
-    }
-    logApiCall('DELETE', url, null, response);
-    return response.status === 204 ? null : await response.json();
-  } catch (error) {
-    logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.REVIEWS.DELETE, { id: reviewId }), null, null, error);
-    throw error;
+/** List reviews for a guide (wrapper). */
+export const getGuideReviews = async (guideId, page = 0, size = 10) => {
+  return getReviews({ guideId: Number(guideId), page, size });
+};
+
+/** @deprecated Use submitReview({ bookingId, rating, comment }, token) instead. */
+export const createReview = async (body, token) => {
+  if (body.bookingId != null) {
+    return submitReview({ bookingId: body.bookingId, rating: body.rating, comment: body.comment }, token);
   }
+  throw new Error('bookingId is required to submit a review');
 };
 
 // --- Admin user (view / reset reviews) ---
@@ -567,6 +575,24 @@ export const resetUserReviews = async (userId, token) => {
     throw new Error(errData.message || `Failed to reset reviews: ${response.status}`);
   }
   return response.status === 204 ? null : await response.json();
+};
+
+// --- Bookings (for review flow: completed bookings only) ---
+/**
+ * List current user's bookings. Use to find completed bookings for submitting a review.
+ * @param {string} token - JWT
+ * @returns {Promise<Array>} list of bookings (shape depends on backend; filter status === 'COMPLETED')
+ */
+export const listBookings = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.BOOKINGS.LIST);
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch bookings: ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data : (data.content ?? []);
 };
 
 // --- Products API ---

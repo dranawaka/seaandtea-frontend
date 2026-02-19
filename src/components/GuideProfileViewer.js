@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Users, Globe, Clock, Shield, CheckCircle, User, Mail, Phone, Calendar, Award, ThumbsUp, MessageSquare, X } from 'lucide-react';
-import { getPublicGuideProfile, getGuideReviews, createReview } from '../config/api';
+import { MapPin, Star, Users, Globe, Clock, Shield, CheckCircle, User, Mail, Phone, Calendar, Award, MessageSquare, X } from 'lucide-react';
+import { getPublicGuideProfile, getGuideReviews, getReviewsRating, submitReview, listBookings } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const GuideProfileViewer = () => {
@@ -9,11 +9,14 @@ const GuideProfileViewer = () => {
   const { token, isAuthenticated } = useAuth();
   const [guideData, setGuideData] = useState(null);
   const [guideReviews, setGuideReviews] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', recommendToOthers: true });
+  const [reviewForm, setReviewForm] = useState({ bookingId: null, rating: 5, comment: '' });
+  const [completedBookings, setCompletedBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState(null);
 
@@ -73,36 +76,72 @@ const GuideProfileViewer = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (id && guideData?.id) loadReviews();
-  }, [id, guideData?.id, loadReviews]);
+  const loadRatingSummary = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await getReviewsRating({ guideId: Number(id) });
+      setRatingSummary(data);
+    } catch {
+      setRatingSummary(null);
+    }
+  }, [id]);
 
-  const handleOpenReviewModal = () => {
+  useEffect(() => {
+    if (id && guideData?.id) {
+      loadReviews();
+      loadRatingSummary();
+    }
+  }, [id, guideData?.id, loadReviews, loadRatingSummary]);
+
+  const handleOpenReviewModal = async () => {
     if (!isAuthenticated || !token) {
       setReviewError('Please log in to leave a review.');
       setReviewModalOpen(true);
       return;
     }
     setReviewError(null);
-    setReviewForm({ rating: 5, comment: '', recommendToOthers: true });
+    setReviewForm({ bookingId: null, rating: 5, comment: '' });
+    setCompletedBookings([]);
     setReviewModalOpen(true);
+    setBookingsLoading(true);
+    try {
+      const bookings = await listBookings(token);
+      const guideIdNum = Number(id);
+      const completed = (bookings || []).filter(
+        (b) =>
+          (String(b.status || '').toUpperCase() === 'COMPLETED') &&
+          (Number(b.guideId) === guideIdNum || Number(b.tour?.guideId) === guideIdNum)
+      );
+      setCompletedBookings(completed);
+      if (completed.length === 1) setReviewForm((f) => ({ ...f, bookingId: completed[0].id }));
+    } catch {
+      setCompletedBookings([]);
+    } finally {
+      setBookingsLoading(false);
+    }
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!token || !id) return;
+    if (!token || !reviewForm.bookingId) {
+      setReviewError('Please select a completed booking to review.');
+      return;
+    }
     setSubmittingReview(true);
     setReviewError(null);
     try {
-      await createReview({
-        guideId: Number(id),
-        rating: Number(reviewForm.rating),
-        comment: reviewForm.comment.trim(),
-        recommendToOthers: reviewForm.recommendToOthers
-      }, token);
-      setReviewForm({ rating: 5, comment: '', recommendToOthers: true });
+      await submitReview(
+        {
+          bookingId: Number(reviewForm.bookingId),
+          rating: Number(reviewForm.rating),
+          comment: (reviewForm.comment || '').trim()
+        },
+        token
+      );
+      setReviewForm({ bookingId: null, rating: 5, comment: '' });
       setReviewModalOpen(false);
       await loadReviews();
+      await loadRatingSummary();
       await loadGuideProfile();
     } catch (err) {
       setReviewError(err.message || 'Failed to submit review');
@@ -259,11 +298,18 @@ const GuideProfileViewer = () => {
               </div>
             )}
             {!location && <span className="text-gray-500">Location not specified</span>}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Star className="h-4 w-4 text-secondary-500" />
               <span>
-                {(guideData.averageRating ?? guideData.rating ?? 0).toFixed(1)} ({guideData.totalReviews ?? guideReviews.length ?? 0} reviews)
+                {(ratingSummary?.averageRating ?? guideData.averageRating ?? guideData.rating ?? 0).toFixed(1)} ({ratingSummary?.totalCount ?? guideData.totalReviews ?? guideReviews.length ?? 0} reviews)
               </span>
+              <button
+                type="button"
+                onClick={handleOpenReviewModal}
+                className="text-primary-600 hover:text-primary-700 font-medium text-sm underline focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 rounded"
+              >
+                Write a review
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
@@ -377,26 +423,35 @@ const GuideProfileViewer = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
             </div>
           ) : guideReviews.length === 0 ? (
-            <p className="text-gray-500">No reviews yet. Reviews are left on individual tours — book a tour and share your experience!</p>
+            <p className="text-gray-500">
+              No reviews yet. {isAuthenticated && token ? 'Be the first to review this guide!' : 'Log in to leave a review.'}
+            </p>
           ) : (
             <div className="space-y-4">
               {guideReviews.map((review) => (
                 <div key={review.id} className="border border-gray-100 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-gray-900">
-                      {review.user?.firstName ? [review.user.firstName, review.user.lastName].filter(Boolean).join(' ') : review.userName || 'Traveler'}
+                      {review.touristName || review.user?.firstName ? [review.user?.firstName, review.user?.lastName].filter(Boolean).join(' ') : review.userName || 'Traveler'}
                     </span>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star key={star} className={`h-4 w-4 ${(review.rating ?? 0) >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
                       ))}
-                      {review.recommendToOthers && <ThumbsUp className="h-4 w-4 text-green-600 ml-1" />}
+                      {review.isVerified && (
+                        <span className="ml-1 text-xs text-green-600 font-medium" title="Verified booking">Verified</span>
+                      )}
                     </div>
                   </div>
                   {review.comment && <p className="text-gray-600 text-sm">{review.comment}</p>}
-                  {review.tourTitle && (
+                  {review.createdAt && (
                     <p className="text-gray-500 text-xs mt-1">
-                      Tour: <Link to={`/tour/${review.tourId}`} className="text-primary-600 hover:underline">{review.tourTitle}</Link>
+                      {new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  )}
+                  {review.tourId && (
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      Tour: <Link to={`/tour/${review.tourId}`} className="text-primary-600 hover:underline">View tour</Link>
                     </p>
                   )}
                 </div>
@@ -422,11 +477,35 @@ const GuideProfileViewer = () => {
                     Log in
                   </Link>
                 </div>
+              ) : bookingsLoading ? (
+                <div className="py-4 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+                </div>
+              ) : completedBookings.length === 0 ? (
+                <div className="py-4">
+                  <p className="text-gray-600">You can leave a review after completing a tour with this guide. Book a tour and come back once it&apos;s completed.</p>
+                </div>
               ) : (
                 <form onSubmit={handleSubmitReview} className="space-y-4">
                   {reviewError && (
                     <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">{reviewError}</div>
                   )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select booking to review</label>
+                    <select
+                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      value={reviewForm.bookingId ?? ''}
+                      onChange={(e) => setReviewForm((f) => ({ ...f, bookingId: e.target.value ? Number(e.target.value) : null }))}
+                    >
+                      <option value="">Choose a completed booking...</option>
+                      {completedBookings.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.tour?.title || `Booking #${b.id}`} {b.tourDate ? ` – ${new Date(b.tourDate).toLocaleDateString()}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
                     <div className="flex gap-1">
@@ -443,27 +522,18 @@ const GuideProfileViewer = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Comment (optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Comment (optional, max 2000 characters)</label>
                     <textarea
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       rows={4}
+                      maxLength={2000}
                       value={reviewForm.comment}
                       onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
                       placeholder="Share your experience with this guide..."
                     />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="recommend-guide"
-                      checked={reviewForm.recommendToOthers}
-                      onChange={(e) => setReviewForm((f) => ({ ...f, recommendToOthers: e.target.checked }))}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <label htmlFor="recommend-guide" className="text-sm text-gray-700">I would recommend this guide to others</label>
-                  </div>
                   <div className="flex gap-2 pt-2">
-                    <button type="submit" disabled={submittingReview} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50">
+                    <button type="submit" disabled={submittingReview || !reviewForm.bookingId} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50">
                       {submittingReview ? 'Submitting...' : 'Submit review'}
                     </button>
                     <button type="button" onClick={() => setReviewModalOpen(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
