@@ -1,7 +1,55 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Users, Globe, Heart, Shield, Award, Target } from 'lucide-react';
 
+const ABOUT_SEO = {
+  title: 'About Us | Sea & Tea - Sri Lanka Local Travel Guides',
+  description: 'Sea & Tea is the Upwork for travel guides in Sri Lanka. We unite verified local guides with travelers for authentic experiences—beaches, mountains, culture & wildlife.',
+  canonical: '/about',
+};
+
 const About = () => {
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = ABOUT_SEO.title;
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc ? metaDesc.getAttribute('content') : null;
+    if (metaDesc) metaDesc.setAttribute('content', ABOUT_SEO.description);
+
+    const setMeta = (property, content) => {
+      let el = document.querySelector(`meta[property="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('property', property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+    const origin = window.location.origin;
+    setMeta('og:title', ABOUT_SEO.title);
+    setMeta('og:description', ABOUT_SEO.description);
+    setMeta('og:url', `${origin}${ABOUT_SEO.canonical}`);
+    setMeta('og:type', 'website');
+
+    let canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (!canonicalEl) {
+      canonicalEl = document.createElement('link');
+      canonicalEl.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalEl);
+    }
+    const prevCanonical = canonicalEl.getAttribute('href');
+    canonicalEl.setAttribute('href', `${origin}${ABOUT_SEO.canonical}`);
+
+    return () => {
+      document.title = prevTitle;
+      if (metaDesc && prevDesc) metaDesc.setAttribute('content', prevDesc);
+      if (canonicalEl) {
+        if (prevCanonical != null) canonicalEl.setAttribute('href', prevCanonical);
+        else canonicalEl.remove();
+      }
+    };
+  }, []);
+
   const stats = [
     { number: '200+', label: 'Happy Travelers', icon: <Users className="h-8 w-8 text-primary-600" /> },
     { number: '75+', label: 'Sri Lankan Guides', icon: <Globe className="h-8 w-8 text-primary-600" /> },
@@ -30,21 +78,9 @@ const About = () => {
   const team = [
     {
       name: 'Dilan Ranawaka',
-      role: 'Co-CEO & CTO',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+      role: 'CEO',
+      image: '/images/dilan-ranawaka-ceo.png',
       bio: 'Technology leader and entrepreneur with expertise in building scalable platforms and digital solutions for the travel industry.'
-    },
-    {
-      name: 'Kasun Rathnayaka',
-      role: 'Co-CEO & Head of Operations',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      bio: 'Former travel journalist with 15+ years of experience exploring the world and connecting with local communities.'
-    },
-    {
-      name: 'Elena Rodriguez',
-      role: 'Guide Relations Manager',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      bio: 'Former tour guide who understands the needs of both travelers and local experts, ensuring perfect matches.'
     }
   ];
 
@@ -168,13 +204,13 @@ const About = () => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-1 gap-8 max-w-md mx-auto">
             {team.map((member, index) => (
               <div key={index} className="text-center">
                 <img 
                   src={member.image} 
                   alt={member.name}
-                  className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
+                  className="w-32 h-32 rounded-xl mx-auto mb-4 object-cover"
                 />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {member.name}
