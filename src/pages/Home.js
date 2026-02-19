@@ -58,8 +58,7 @@ const Home = () => {
               <span className="text-2xl md:text-4xl lg:text-5xl font-semibold block mt-2 text-primary-200">in Sri Lanka</span>
             </h1>
             <p className="text-lg md:text-xl lg:text-2xl mb-10 max-w-3xl mx-auto text-primary-200 leading-relaxed animate-fade-in">
-              Connect with Sri Lanka's best freelance travel guides. Experience beaches, mountains, 
-              culture & wildlife within 2-3 hours - all with certified local experts.
+              To connect travelers with verified local guides for authentic, flexible, and personalized Sri Lankan experiences.
             </p>
 
           </div>

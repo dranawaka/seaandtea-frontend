@@ -3,7 +3,7 @@ import { Users, Globe, Heart, Shield, Award, Target } from 'lucide-react';
 
 const ABOUT_SEO = {
   title: 'About Us | Sea & Tea - Sri Lanka Local Travel Guides',
-  description: 'Sea & Tea is the Upwork for travel guides in Sri Lanka. We unite verified local guides with travelers for authentic experiences—beaches, mountains, culture & wildlife.',
+  description: 'Sea & Tea connects travelers with verified local guides for authentic, flexible, and personalized Sri Lankan experiences. The leading marketplace for independent travel guides.',
   canonical: '/about',
 };
 
@@ -92,9 +92,8 @@ const About = () => {
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             About Sea & Tea
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto">
-            We're building "The Upwork for Travel Guides in Sri Lanka" - unifying the country's fragmented 
-            freelance guide community into one trusted platform for authentic travel experiences.
+          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-primary-100">
+            To connect travelers with verified local guides for authentic, flexible, and personalized Sri Lankan experiences.
           </p>
         </div>
       </section>
@@ -108,25 +107,46 @@ const About = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                At Sea & Tea, we're solving a real problem in Sri Lanka's tourism industry. The country has a thriving community 
-                of freelance travel guides, but they're scattered across Facebook groups, WhatsApp chats, and word-of-mouth networks.
-              </p>
-              <p className="text-lg text-gray-600 mb-6">
-                We're building the platform that unifies this fragmented community, making it easy for travelers to find, compare, and book 
-                directly with verified local guides. Think of us as "The Upwork for Travel Guides in Sri Lanka" - where independent 
-                guides can showcase their expertise and travelers can discover authentic experiences.
-              </p>
-              <p className="text-lg text-gray-600">
-                Our vision extends beyond Sri Lanka. After establishing ourselves here, we plan to expand to other compact, diverse 
-                destinations like Bali, Maldives, and Nepal - places where travelers can experience multiple landscapes and cultures in short trips.
+                To empower independent travel guides in Sri Lanka by giving them a trusted digital platform to showcase their expertise, 
+                connect directly with travelers, and build sustainable, independent careers — while enabling travelers to discover 
+                authentic, verified local experiences with confidence.
               </p>
             </div>
             <div className="relative">
               <img 
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-                alt="Team collaboration"
-                className="rounded-lg shadow-xl"
+                src="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1000&q=80"
+                alt="Travelers with a local guide on an authentic Sri Lankan experience"
+                className="rounded-lg shadow-xl object-cover"
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vision Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="order-2 md:order-1 relative">
+              <img 
+                src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1000&q=80"
+                alt="Global travel and discovery"
+                className="rounded-lg shadow-xl object-cover"
+              />
+            </div>
+            <div className="order-1 md:order-2">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                Our Vision
+              </h2>
+              <p className="text-lg text-gray-600 mb-6">
+                To become the leading global marketplace for independent travel guides — starting in Sri Lanka and expanding to 
+                compact, culturally rich destinations worldwide — transforming how travelers discover and book local expertise.
+              </p>
+              <p className="text-lg text-gray-600">
+                We envision a world where independent local guides are no longer hidden in fragmented social networks but are 
+                discoverable, trusted, and empowered through technology. Sea & Tea will redefine travel by building a global 
+                ecosystem where local expertise meets global curiosity.
+              </p>
             </div>
           </div>
         </div>
