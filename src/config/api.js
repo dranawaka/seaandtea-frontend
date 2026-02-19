@@ -69,7 +69,9 @@ export const API_CONFIG = {
     },
     FILES: {
       UPLOAD_PROFILE_PICTURE: '/upload/profile-picture',
-      UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture'
+      UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture',
+      UPLOAD_TOUR_IMAGE: '/upload/tour/:tourId/image',
+      DELETE_IMAGE: '/upload/image'
     },
     REVIEWS: {
       LIST: '/reviews',
@@ -87,6 +89,24 @@ export const API_CONFIG = {
       MINE: '/cart',
       ITEMS: '/cart/items',
       ITEM_BY_ID: '/cart/items/:id'
+    },
+    MESSAGES: {
+      SEND: '/messages',
+      CONVERSATIONS: '/messages/conversations',
+      CONVERSATION: '/messages/conversations/:partnerId',
+      MARK_READ: '/messages/conversations/:partnerId/read',
+      UNREAD_COUNT: '/messages/unread-count'
+    },
+    NEWS: {
+      LIST: '/news',
+      DETAIL: '/news/:id',
+      CREATE: '/news',
+      UPDATE: '/news/:id',
+      DELETE: '/news/:id',
+      ADMIN_ALL: '/news/admin/all',
+      LIKE: '/news/:id/like',
+      COMMENTS: '/news/:id/comments',
+      COMMENT_DELETE: '/news/:id/comments/:commentId'
     }
   }
 };
@@ -132,6 +152,85 @@ export const logRequestHeaders = (method, url, headers, data = null) => {
     data: data,
     timestamp: new Date().toISOString()
   });
+};
+
+// File constraints for upload API (JPEG, JPG, PNG, WebP; max 10 MB)
+export const UPLOAD_CONSTRAINTS = {
+  ALLOWED_TYPES: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  MAX_SIZE_BYTES: 10 * 1024 * 1024,
+  MAX_SIZE_MB: 10,
+  FORM_FIELD_NAME: 'file'
+};
+
+/**
+ * Validate image file for upload API (type and size).
+ * @param {File} file
+ * @returns {string|null} Error message or null if valid
+ */
+export const validateUploadFile = (file) => {
+  if (!file || file.size === 0) return 'File is empty';
+  if (!UPLOAD_CONSTRAINTS.ALLOWED_TYPES.includes(file.type)) {
+    return 'Allowed types: JPEG, JPG, PNG, WebP';
+  }
+  if (file.size > UPLOAD_CONSTRAINTS.MAX_SIZE_BYTES) {
+    return `File must be under ${UPLOAD_CONSTRAINTS.MAX_SIZE_MB} MB`;
+  }
+  return null;
+};
+
+/**
+ * Upload an image for a specific tour. POST /api/v1/upload/tour/{tourId}/image.
+ * Returns the full tour with updated images; use tour.images for the new image URL.
+ * @param {number} tourId - Tour ID
+ * @param {File} file - Image file (JPEG, PNG, WebP; max 10 MB)
+ * @param {{ isPrimary?: boolean, altText?: string }} [options]
+ * @param {string} [token] - JWT (uses localStorage 'authToken' if not provided)
+ * @returns {Promise<Object>} Full TourResponse with updated images array
+ */
+export const uploadTourImageApi = async (tourId, file, options = {}, token = null) => {
+  const authToken = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null);
+  if (!authToken) throw new Error('Authentication required');
+  const err = validateUploadFile(file);
+  if (err) throw new Error(err);
+
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.FILES.UPLOAD_TOUR_IMAGE, { tourId });
+  const formData = new FormData();
+  formData.append(UPLOAD_CONSTRAINTS.FORM_FIELD_NAME, file);
+  if (options.isPrimary === true) formData.append('isPrimary', 'true');
+  if (options.altText != null && String(options.altText).trim()) formData.append('altText', String(options.altText).trim());
+
+  const headers = { 'Authorization': `Bearer ${authToken}` };
+  logApiCall('POST', url, { file: file.name, size: file.size });
+  const response = await fetch(url, { method: 'POST', headers, body: formData });
+  logApiCall('POST', url, null, response);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `Upload failed: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Delete an image from storage by URL. DELETE /api/v1/upload/image?imageUrl=...
+ * Only for Cloudinary URLs returned by this API. GUIDE or ADMIN.
+ * @param {string} imageUrl - Full URL of the image to delete
+ * @param {string} [token] - JWT
+ * @returns {Promise<void>}
+ */
+export const deleteImageApi = async (imageUrl, token = null) => {
+  const authToken = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null);
+  if (!authToken) throw new Error('Authentication required');
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.FILES.DELETE_IMAGE);
+  const fullUrl = `${url}?imageUrl=${encodeURIComponent(imageUrl)}`;
+  const headers = { 'Authorization': `Bearer ${authToken}` };
+  logApiCall('DELETE', fullUrl);
+  const response = await fetch(fullUrl, { method: 'DELETE', headers });
+  logApiCall('DELETE', fullUrl, null, response);
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `Delete failed: ${response.status}`);
+  }
 };
 
 // Guide profile utility functions
@@ -377,20 +476,20 @@ export const getTourById = async (tourId) => {
 export const getGuideTours = async (guideId, page = 0, size = 10, token = null) => {
   try {
     let url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS);
-    
+
     // Add query parameters
     const params = new URLSearchParams();
     params.append('page', page);
     params.append('size', size);
-    
+
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
-    
+
     logApiCall('GET', url);
-    
+
     const headers = getDefaultHeaders(!!token, token);
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: headers
@@ -402,12 +501,84 @@ export const getGuideTours = async (guideId, page = 0, size = 10, token = null) 
 
     const data = await response.json();
     logApiCall('GET', url, null, response);
-    
+
     return data;
   } catch (error) {
     logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.GUIDE_TOURS), null, null, error);
     throw error;
   }
+};
+
+/**
+ * Create a new tour (GUIDE or ADMIN). Requires JWT. Tour is created for the authenticated guide.
+ * @param {Object} body - Tour create payload
+ * @param {string} body.title - 3–200 chars
+ * @param {string} body.description - 10–2000 chars
+ * @param {string} body.category - TEA_TOURS | BEACH_TOURS | CULTURAL_TOURS | ADVENTURE_TOURS | FOOD_TOURS | WILDLIFE_TOURS
+ * @param {number} body.durationHours - 1–168
+ * @param {number} [body.maxGroupSize] - 1–50, default 10
+ * @param {number} body.pricePerPerson - 0.01–10000
+ * @param {boolean} [body.instantBooking] - default false
+ * @param {boolean} [body.securePayment] - default true
+ * @param {string[]} [body.languages] - max 10
+ * @param {string[]} [body.highlights] - max 20
+ * @param {string[]} [body.includedItems] - max 30
+ * @param {string[]} [body.excludedItems] - max 30
+ * @param {string} [body.meetingPoint] - max 500
+ * @param {string} [body.cancellationPolicy] - max 1000
+ * @param {string[]} [body.imageUrls] - max 10
+ * @param {number} [body.primaryImageIndex] - 0-based, default 0
+ * @param {string} token - JWT
+ * @returns {Promise<Object>} Created tour (TourResponse)
+ */
+export const createTour = async (body, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
+  const headers = getDefaultHeaders(true, token);
+  const payload = {
+    title: String(body.title).trim(),
+    description: String(body.description).trim(),
+    category: String(body.category).trim(),
+    durationHours: Number(body.durationHours),
+    pricePerPerson: Number(body.pricePerPerson)
+  };
+  if (body.maxGroupSize != null && body.maxGroupSize !== '') payload.maxGroupSize = Math.min(50, Math.max(1, Number(body.maxGroupSize) || 10));
+  if (body.instantBooking !== undefined) payload.instantBooking = Boolean(body.instantBooking);
+  if (body.securePayment !== undefined) payload.securePayment = Boolean(body.securePayment);
+  if (Array.isArray(body.languages) && body.languages.length) payload.languages = body.languages.slice(0, 10);
+  if (Array.isArray(body.highlights) && body.highlights.length) payload.highlights = body.highlights.slice(0, 20);
+  if (Array.isArray(body.includedItems) && body.includedItems.length) payload.includedItems = body.includedItems.slice(0, 30);
+  if (Array.isArray(body.excludedItems) && body.excludedItems.length) payload.excludedItems = body.excludedItems.slice(0, 30);
+  if (body.meetingPoint != null && String(body.meetingPoint).trim()) payload.meetingPoint = String(body.meetingPoint).trim().slice(0, 500);
+  if (body.cancellationPolicy != null && String(body.cancellationPolicy).trim()) payload.cancellationPolicy = String(body.cancellationPolicy).trim().slice(0, 1000);
+  const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean).slice(0, 10) : [];
+  if (imageUrls.length) payload.imageUrls = imageUrls;
+  if (body.primaryImageIndex != null && imageUrls.length) payload.primaryImageIndex = Math.max(0, Math.min(imageUrls.length - 1, Number(body.primaryImageIndex) || 0));
+
+  logApiCall('POST', url, payload);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  if (response.status === 201) {
+    const data = await response.json();
+    logApiCall('POST', url, payload, response);
+    return data;
+  }
+
+  let errMessage = `Failed to create tour (${response.status})`;
+  try {
+    const errBody = await response.json();
+    if (errBody.message) errMessage = errBody.message;
+    else if (errBody.error) errMessage = errBody.error;
+    else if (Array.isArray(errBody.errors)) errMessage = errBody.errors.map(e => e.defaultMessage || e.message).join(', ') || errMessage;
+  } catch (_) {
+    const text = await response.text();
+    if (text && text.length < 300) errMessage = text;
+  }
+  logApiCall('POST', url, payload, null, new Error(errMessage));
+  throw new Error(errMessage);
 };
 
 // --- Reviews API (v1: booking-based, tour/guide listing and rating) ---
@@ -867,5 +1038,216 @@ export const removeCartItemApi = async (itemId, token) => {
   } catch (error) {
     logApiCall('DELETE', buildApiUrl(API_CONFIG.ENDPOINTS.CART.ITEM_BY_ID, { id: itemId }), null, null, error);
     throw error;
+  }
+};
+
+// --- Messages API (internal chat: customers, guides, admins) ---
+
+/**
+ * Send a message to another user.
+ * @param {{ receiverId: number, message: string, bookingId?: number }} body
+ * @param {string} token - JWT
+ * @returns {Promise<{ id, senderId, senderName, receiverId, receiverName, bookingId, message, isRead, createdAt }>}
+ */
+export const sendMessageApi = async (body, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.MESSAGES.SEND);
+  const headers = getDefaultHeaders(true, token);
+  const payload = {
+    receiverId: Number(body.receiverId),
+    message: String(body.message).slice(0, 5000)
+  };
+  if (body.bookingId != null) payload.bookingId = Number(body.bookingId);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to send message: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * List current user's conversations (one per partner).
+ * @param {string} token - JWT
+ * @returns {Promise<Array<{ partnerId, partnerName, partnerEmail, partnerRole, lastMessagePreview, lastMessageAt, unreadCount }>>}
+ */
+export const getConversationsApi = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATIONS);
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch conversations: ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+/**
+ * Get paginated messages with a partner. Newest first.
+ * @param {number} partnerId
+ * @param {{ page?: number, size?: number }} params
+ * @param {string} token - JWT
+ * @returns {Promise<{ content: array, totalElements, totalPages, number, size, first, last }>}
+ */
+export const getConversationMessagesApi = async (partnerId, params = {}, token) => {
+  const { page = 0, size = 20 } = params;
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.MESSAGES.CONVERSATION, { partnerId });
+  const fullUrl = `${url}?page=${page}&size=${size}`;
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(fullUrl, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch messages: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Mark all messages from partner as read.
+ * @param {number} partnerId
+ * @param {string} token - JWT
+ */
+export const markConversationReadApi = async (partnerId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.MESSAGES.MARK_READ, { partnerId });
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'PUT', headers });
+  if (!response.ok && response.status !== 204) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to mark as read: ${response.status}`);
+  }
+};
+
+/**
+ * Get total unread message count for current user.
+ * @param {string} token - JWT
+ * @returns {Promise<{ unreadCount: number }>}
+ */
+export const getUnreadCountApi = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.MESSAGES.UNREAD_COUNT);
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    return { unreadCount: 0 };
+  }
+  const data = await response.json();
+  return { unreadCount: data.unreadCount ?? 0 };
+};
+
+// --- News & Posts API ---
+
+/**
+ * List published posts (feed). Optional auth for likedByCurrentUser.
+ * @param {{ page?: number, size?: number }} params
+ * @param {string|null} token - JWT optional
+ * @returns {Promise<{ content: array, totalElements, totalPages, ... }>}
+ */
+export const listPublishedNewsApi = async (params = {}, token = null) => {
+  const { page = 0, size = 10 } = params;
+  const url = `${buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.LIST)}?page=${page}&size=${size}`;
+  const headers = getDefaultHeaders(!!token, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch news: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Get single post by ID (full body + comments). Admin can see unpublished.
+ * @param {number} id - Post ID
+ * @param {string|null} token - JWT optional (required for unpublished as admin)
+ */
+export const getNewsByIdApi = async (id, token = null) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.DETAIL, { id });
+  const headers = getDefaultHeaders(!!token, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch post: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * List all posts (admin only, includes drafts).
+ * @param {{ page?: number, size?: number }} params
+ * @param {string} token - JWT (Admin)
+ */
+export const listAllNewsAdminApi = async (params = {}, token) => {
+  const { page = 0, size = 10 } = params;
+  const url = `${buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.ADMIN_ALL)}?page=${page}&size=${size}`;
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'GET', headers });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to fetch news: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Create post (Admin only).
+ * @param {{ title: string, body: string, isPublished?: boolean }} body
+ * @param {string} token - JWT (Admin)
+ */
+export const createNewsPostApi = async (body, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.CREATE);
+  const headers = getDefaultHeaders(true, token);
+  const payload = {
+    title: String(body.title).trim(),
+    body: String(body.body).trim(),
+    isPublished: body.isPublished !== false
+  };
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to create post: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Update post (Admin only). Send only fields to change.
+ * @param {number} id - Post ID
+ * @param {{ title?: string, body?: string, isPublished?: boolean }} body
+ * @param {string} token - JWT (Admin)
+ */
+export const updateNewsPostApi = async (id, body, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.UPDATE, { id });
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to update post: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Delete post (Admin only).
+ * @param {number} id - Post ID
+ * @param {string} token - JWT (Admin)
+ */
+export const deleteNewsPostApi = async (id, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.NEWS.DELETE, { id });
+  const headers = getDefaultHeaders(true, token);
+  const response = await fetch(url, { method: 'DELETE', headers });
+  if (!response.ok && response.status !== 204) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to delete post: ${response.status}`);
   }
 };

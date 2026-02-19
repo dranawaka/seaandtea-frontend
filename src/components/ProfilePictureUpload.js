@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, Check, AlertCircle } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
+import { buildApiUrl, API_CONFIG, logApiCall, validateUploadFile, UPLOAD_CONSTRAINTS } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { PLACEHOLDER_IMAGES } from '../utils/imageUtils';
 
@@ -54,15 +54,9 @@ const ProfilePictureUpload = ({
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, GIF)');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB');
+    const validationError = validateUploadFile(file);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -262,7 +256,7 @@ const ProfilePictureUpload = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled || isUploading}
@@ -320,7 +314,7 @@ const ProfilePictureUpload = ({
       {/* Help Text */}
       <div className="text-xs text-gray-500 text-center max-w-xs">
         <p>Upload a clear photo of yourself</p>
-        <p>Max size: 5MB • JPG, PNG, GIF</p>
+        <p>Max size: {UPLOAD_CONSTRAINTS.MAX_SIZE_MB}MB • JPEG, PNG, WebP</p>
       </div>
     </div>
   );

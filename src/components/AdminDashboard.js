@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, CheckCircle, XCircle, Eye, UserCheck, AlertCircle, Trash2, MapPin, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight, RotateCcw, X, Search, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, getAllGuides, getPublicVerifiedToursPaginated, getAdminUserById, resetUserReviews, deleteProductApi } from '../config/api';
+import { Shield, Users, CheckCircle, XCircle, Eye, UserCheck, AlertCircle, Trash2, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight, RotateCcw, X, Search, ChevronsLeft, ChevronsRight, Plus, Newspaper } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, getAllGuides, getAdminUserById, resetUserReviews, deleteProductApi, listAllNewsAdminApi, deleteNewsPostApi } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { fetchProductsFromApi } from '../data/shopProducts';
 
 const AdminDashboard = () => {
   const { user, token } = useAuth();
   const [allGuides, setAllGuides] = useState([]);
-  const [allTours, setAllTours] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -24,8 +23,11 @@ const AdminDashboard = () => {
   const [userFilterStatus, setUserFilterStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [guidesLoading, setGuidesLoading] = useState(false);
-  const [toursLoading, setToursLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [allNews, setAllNews] = useState([]);
+  const [newsPage, setNewsPage] = useState({ page: 0, size: 10, totalPages: 0, totalElements: 0 });
+  const [deletingNewsId, setDeletingNewsId] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -47,9 +49,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       loadAllGuides();
-      loadAllTours();
       loadAllProducts();
       loadAllUsers(0, 20);
+      loadAllNews(0, 10);
     }
   }, [user]);
 
@@ -126,77 +128,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Load all tours for admin list (paginated, fetch first 100)
-  const loadAllTours = async () => {
-    try {
-      setToursLoading(true);
-      const data = await getPublicVerifiedToursPaginated(0, 100, {});
-      const list = Array.isArray(data) ? data : (data?.content ?? []);
-      setAllTours(list);
-    } catch (err) {
-      console.error('Error loading tours:', err);
-    } finally {
-      setToursLoading(false);
-    }
-  };
-
-  // Delete guide (admin)
-  const deleteGuide = async (guideId) => {
-    if (!window.confirm('Permanently remove this guide? This cannot be undone.')) return;
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DELETE, { id: guideId }), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.ok || response.status === 204) {
-        setAllGuides(prev => prev.filter(g => g.id !== guideId));
-        setSuccess('Guide removed successfully.');
-        setTimeout(() => setSuccess(null), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed to delete guide');
-      }
-    } catch (err) {
-      console.error('Error deleting guide:', err);
-      setError(err.message || 'Failed to remove guide.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Delete tour (admin)
-  const deleteTour = async (tourId) => {
-    if (!window.confirm('Permanently remove this tour? This cannot be undone.')) return;
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DELETE, { id: tourId }), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.ok || response.status === 204) {
-        setAllTours(prev => prev.filter(t => t.id !== tourId));
-        setSuccess('Tour removed successfully.');
-        setTimeout(() => setSuccess(null), 3000);
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || 'Failed to delete tour');
-      }
-    } catch (err) {
-      console.error('Error deleting tour:', err);
-      setError(err.message || 'Failed to remove tour.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Load all users (admin) – paginated per Swagger: GET /admin/users?page=0&size=20&sort=createdAt,desc
   const loadAllUsers = async (page = 0, size = 20) => {
@@ -391,6 +322,48 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.message || 'Failed to remove product.');
+    }
+  };
+
+  // Load all news posts (admin) – GET /news/admin/all
+  const loadAllNews = async (page = 0, size = 10) => {
+    try {
+      setNewsLoading(true);
+      setError(null);
+      const data = await listAllNewsAdminApi({ page, size }, token);
+      const list = data.content ?? [];
+      setAllNews(list);
+      setNewsPage(prev => ({
+        ...prev,
+        page: data.number ?? page,
+        size: data.size ?? size,
+        totalPages: data.totalPages ?? 0,
+        totalElements: data.totalElements ?? list.length
+      }));
+    } catch (err) {
+      console.error('Error loading news:', err);
+      setAllNews([]);
+      setError(err.message || 'Failed to load news posts.');
+    } finally {
+      setNewsLoading(false);
+    }
+  };
+
+  // Delete news post (admin)
+  const deleteNewsPost = async (postId) => {
+    if (!window.confirm('Permanently delete this post and all its likes and comments? This cannot be undone.')) return;
+    try {
+      setDeletingNewsId(postId);
+      setError(null);
+      await deleteNewsPostApi(postId, token);
+      setAllNews(prev => prev.filter(p => p.id !== postId));
+      setNewsPage(prev => ({ ...prev, totalElements: Math.max(0, (prev.totalElements || 0) - 1) }));
+      setSuccess('Post deleted.');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to delete post.');
+    } finally {
+      setDeletingNewsId(null);
     }
   };
 
@@ -856,176 +829,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* All Guides - Admin remove */}
-        <div className="bg-white shadow rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Users className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-medium text-gray-900">All Guides</h2>
-                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {allGuides.length}
-                </span>
-              </div>
-              <button
-                onClick={loadAllGuides}
-                disabled={guidesLoading}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            {guidesLoading ? (
-              <div className="p-6 text-center text-sm text-gray-500">Loading guides...</div>
-            ) : allGuides.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">No guides found.</div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guide</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {allGuides.map((guide) => {
-                    const name = guide.firstName && guide.lastName
-                      ? `${guide.firstName} ${guide.lastName}`
-                      : guide.fullName || guide.user?.firstName
-                        ? `${guide.user?.firstName || ''} ${guide.user?.lastName || ''}`.trim()
-                        : `Guide #${guide.id}`;
-                    const email = guide.email || guide.user?.email || '—';
-                    return (
-                      <tr key={guide.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              {(guide.profilePictureUrl || guide.profileImageUrl) ? (
-                                <img
-                                  className="h-10 w-10 rounded-full object-cover"
-                                  src={guide.profilePictureUrl || guide.profileImageUrl}
-                                  alt={name}
-                                />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                  <Users className="h-5 w-5 text-primary-600" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{name}</div>
-                              <div className="text-sm text-gray-500">ID: {guide.id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Link
-                              to={`/admin/guide/${guide.id}/edit`}
-                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                              <Edit2 className="h-4 w-4 mr-1" />
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => deleteGuide(guide.id)}
-                              disabled={isLoading}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Remove
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* All Tours - Admin remove */}
-        <div className="bg-white shadow rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <MapPin className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-medium text-gray-900">All Tours</h2>
-                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {allTours.length}
-                </span>
-              </div>
-              <button
-                onClick={loadAllTours}
-                disabled={toursLoading}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            {toursLoading ? (
-              <div className="p-6 text-center text-sm text-gray-500">Loading tours...</div>
-            ) : allTours.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">No tours found.</div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location / Price</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {allTours.map((tour) => {
-                    const title = tour.title || tour.name || `Tour #${tour.id}`;
-                    const location = tour.location || tour.region || '—';
-                    const price = tour.price != null ? `$${Number(tour.price).toFixed(0)}` : '—';
-                    return (
-                      <tr key={tour.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{title}</div>
-                          <div className="text-sm text-gray-500">ID: {tour.id}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{location} · {price}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Link
-                              to={`/edit-tour/${tour.id}`}
-                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                            >
-                              <Edit2 className="h-4 w-4 mr-1" />
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => deleteTour(tour.id)}
-                              disabled={isLoading}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Remove
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
         {/* All Products - Admin edit/remove */}
         <div className="bg-white shadow rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -1102,6 +905,144 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+
+        {/* News & Posts */}
+        <div className="bg-white shadow rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Newspaper className="h-5 w-5 text-gray-500 mr-2" />
+                <h2 className="text-lg font-medium text-gray-900">News & Posts</h2>
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {newsPage.totalElements ?? allNews.length} posts
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/admin/news/new"
+                  className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create post
+                </Link>
+                <button
+                  onClick={() => loadAllNews(newsPage.page, newsPage.size)}
+                  disabled={newsLoading}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            {newsLoading ? (
+              <div className="p-6 text-center text-sm text-gray-500">Loading news...</div>
+            ) : allNews.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No posts yet. Create one to get started.</div>
+            ) : (
+              <>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Likes / Comments</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allNews.map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{p.title}</div>
+                          {p.bodySummary && (
+                            <div className="text-xs text-gray-500 truncate max-w-xs">{p.bodySummary}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{p.authorDisplayName || '—'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${p.isPublished ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {p.isPublished ? 'Published' : 'Draft'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {(p.likeCount ?? 0)} / {(p.commentCount ?? 0)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              to={`/admin/news/${p.id}/edit`}
+                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              <Edit2 className="h-4 w-4 mr-1" />
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => deleteNewsPost(p.id)}
+                              disabled={deletingNewsId === p.id}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(newsPage.totalPages > 1 || allNews.length >= newsPage.size) && (
+                  <div className="px-6 py-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-gray-500">
+                      Page {newsPage.page + 1} of {Math.max(1, newsPage.totalPages)} ({newsPage.totalElements} total)
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadAllNews(0, newsPage.size)}
+                        disabled={newsLoading || newsPage.page <= 0}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loadAllNews(newsPage.page - 1, newsPage.size)}
+                        disabled={newsLoading || newsPage.page <= 0}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loadAllNews(newsPage.page + 1, newsPage.size)}
+                        disabled={newsLoading || newsPage.page >= Math.max(1, newsPage.totalPages) - 1}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loadAllNews(Math.max(0, newsPage.totalPages - 1), newsPage.size)}
+                        disabled={newsLoading || newsPage.page >= Math.max(1, newsPage.totalPages) - 1}
+                        className="inline-flex items-center p-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

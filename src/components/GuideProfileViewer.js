@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Users, Globe, Clock, Shield, CheckCircle, User, Mail, Phone, Calendar, Award, MessageSquare, X } from 'lucide-react';
 import { getPublicGuideProfile, getGuideReviews, getReviewsRating, submitReview, listBookings } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const GuideProfileViewer = () => {
   const { id } = useParams();
-  const { token, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { user, token, isAuthenticated } = useAuth();
   const [guideData, setGuideData] = useState(null);
   const [guideReviews, setGuideReviews] = useState([]);
   const [ratingSummary, setRatingSummary] = useState(null);
@@ -205,6 +206,9 @@ const GuideProfileViewer = () => {
   const email = guideData.email || guideData.userEmail || null;
   const phone = guideData.phone || guideData.userPhone || null;
   const location = guideData.location || guideData.userLocation || null;
+  const guideUserId = guideData.userId ?? guideData.user?.id ?? null;
+  const guideDisplayName = [firstName, lastName].filter(Boolean).join(' ') || 'Guide';
+  const canMessageGuide = guideUserId && user?.id !== guideUserId;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -249,6 +253,35 @@ const GuideProfileViewer = () => {
                     <CheckCircle className="h-4 w-4" />
                     Available
                   </div>
+                )}
+                {canMessageGuide && (
+                  isAuthenticated ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/messages', {
+                        state: {
+                          startConversation: {
+                            partnerId: guideUserId,
+                            partnerName: guideDisplayName,
+                            partnerEmail: email || undefined,
+                            partnerRole: 'GUIDE'
+                          }
+                        }
+                      })}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Message guide
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Log in to message guide
+                    </Link>
+                  )
                 )}
               </div>
 

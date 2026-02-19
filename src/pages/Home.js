@@ -1,10 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Star, Users, Calendar, ArrowRight, Globe, Shield, Heart, Clock, Mountain, Waves, TreePine, Building } from 'lucide-react';
+import { MapPin, Star, Users, Calendar, ArrowRight, Globe, Shield, Heart, Clock, Mountain, Waves, TreePine, Building, Newspaper, MessageCircle, ThumbsUp } from 'lucide-react';
 import { mockDestinations } from '../data/mockData';
 import ImageSlider from '../components/ImageSlider';
+import { listPublishedNewsApi } from '../config/api';
 
 const Home = () => {
+  const [articles, setArticles] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    listPublishedNewsApi({ page: 0, size: 6 })
+      .then((data) => {
+        if (!cancelled) setArticles(data.content ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setArticles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setArticlesLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
   const features = [
     {
       icon: <Clock className="h-8 w-8 text-primary-600" />,
@@ -224,6 +242,73 @@ const Home = () => {
               <ArrowRight className="h-5 w-5 ml-2" />
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Latest News & Articles */}
+      <section className="section-padding bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
+              Latest News & Articles
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Updates, travel tips, and stories from Sea & Tea and our community.
+            </p>
+          </div>
+
+          {articlesLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No articles yet. Check back soon for news and travel stories.
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+              {articles.map((post) => (
+                <article key={post.id} className="card-modern overflow-hidden group flex flex-col">
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex items-center text-primary-600 mb-3">
+                      <Newspaper className="h-5 w-5 mr-2" />
+                      <span className="text-sm font-medium">
+                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'News'}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed flex-1 line-clamp-3 mb-4">
+                      {post.bodySummary || 'Read more...'}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mt-auto pt-4 border-t border-gray-100">
+                      <span>{post.authorDisplayName || 'Sea & Tea'}</span>
+                      <div className="flex items-center gap-3">
+                        {(post.likeCount ?? 0) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <ThumbsUp className="h-3.5 w-3.5" /> {post.likeCount}
+                          </span>
+                        )}
+                        {(post.commentCount ?? 0) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3.5 w-3.5" /> {post.commentCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/news/${post.id}`}
+                    className="block px-6 py-4 bg-gray-50 group-hover:bg-primary-50 text-primary-600 font-medium text-sm transition-colors flex items-center"
+                  >
+                    Read article
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

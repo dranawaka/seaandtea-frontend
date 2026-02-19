@@ -1,35 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, X, ArrowLeft, Save, MapPin, Clock, Users, DollarSign, Star } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, logApiCall, getTourById } from '../config/api';
+import { Plus, X, ArrowLeft, Save, Image as ImageIcon } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, getTourById, createTour as createTourApi } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import ImagePicker from '../components/ImagePicker';
+
+// Parse duration from API (number of hours or string like "4 hours", "1 day")
+const parseDurationHours = (dur) => {
+  if (dur == null) return '';
+  if (typeof dur === 'number' && !isNaN(dur)) return String(dur);
+  const s = String(dur).trim();
+  const num = parseFloat(s);
+  if (!isNaN(num)) return String(Math.round(num));
+  const hourMatch = s.match(/(\d+)\s*(hour|hr|h)/i);
+  if (hourMatch) return hourMatch[1];
+  const dayMatch = s.match(/(\d+)\s*(day|d)/i);
+  if (dayMatch) return String(Number(dayMatch[1]) * 24);
+  return s;
+};
+
+// API category enum (exact values for POST /api/v1/tours)
+const TOUR_CATEGORIES = [
+  { value: 'TEA_TOURS', label: 'Tea Tours' },
+  { value: 'BEACH_TOURS', label: 'Beach Tours' },
+  { value: 'CULTURAL_TOURS', label: 'Cultural Tours' },
+  { value: 'ADVENTURE_TOURS', label: 'Adventure Tours' },
+  { value: 'FOOD_TOURS', label: 'Food Tours' },
+  { value: 'WILDLIFE_TOURS', label: 'Wildlife Tours' }
+];
 
 const CreateTour = () => {
   const navigate = useNavigate();
   const { id: tourId } = useParams();
   const isEditMode = Boolean(tourId);
   const { user, token, isAuthenticated } = useAuth();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTour, setLoadingTour] = useState(isEditMode);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
-  
+  const totalSteps = 5;
+
   const [tourForm, setTourForm] = useState({
     title: '',
     description: '',
     category: '',
-    duration: '',
-    maxGroupSize: '',
+    durationHours: '',
+    maxGroupSize: '10',
     price: '',
+    instantBooking: false,
+    securePayment: true,
+    languages: [],
     includes: [],
     excludes: [],
     highlights: [],
     meetingPoint: '',
-    cancellationPolicy: ''
+    cancellationPolicy: '',
+    imageUrls: [],
+    primaryImageIndex: 0
   });
-  
   const [errors, setErrors] = useState({});
 
   // Load tour when editing
@@ -41,18 +70,25 @@ const CreateTour = () => {
         setLoadingTour(true);
         const tour = await getTourById(tourId);
         if (cancelled) return;
+        const urls = (tour.images || []).map(img => img.imageUrl || img.url).filter(Boolean);
+        const primaryIdx = (tour.images || []).findIndex(img => img.isPrimary);
         setTourForm({
           title: tour.title || '',
           description: tour.description || '',
           category: tour.category || '',
-          duration: (tour.durationHours != null ? tour.durationHours : tour.duration)?.toString() || '',
-          maxGroupSize: (tour.maxGroupSize != null ? tour.maxGroupSize : tour.maxGroupSize)?.toString() || '',
-          price: (tour.pricePerPerson != null ? tour.pricePerPerson : tour.price)?.toString() || '',
+          durationHours: parseDurationHours(tour.durationHours ?? tour.duration),
+          maxGroupSize: (tour.maxGroupSize != null ? tour.maxGroupSize : 10)?.toString() ?? '10',
+          price: (tour.pricePerPerson != null ? tour.pricePerPerson : tour.price)?.toString() ?? '',
+          instantBooking: Boolean(tour.instantBooking),
+          securePayment: tour.securePayment !== false,
+          languages: Array.isArray(tour.languages) ? tour.languages : [],
           includes: tour.includedItems || tour.includes || [],
           excludes: tour.excludedItems || tour.excludes || [],
           highlights: tour.highlights || [],
           meetingPoint: tour.meetingPoint || '',
-          cancellationPolicy: tour.cancellationPolicy || ''
+          cancellationPolicy: tour.cancellationPolicy || '',
+          imageUrls: urls,
+          primaryImageIndex: primaryIdx >= 0 ? primaryIdx : 0
         });
       } catch (err) {
         if (!cancelled) setMessage({ type: 'error', text: err.message || 'Failed to load tour' });
@@ -95,17 +131,27 @@ const CreateTour = () => {
     }
   };
 
+  const maxByField = { languages: 10, highlights: 20, includes: 30, excludes: 30, imageUrls: 10 };
+
   const handleArrayInputChange = (field, value, action = 'add') => {
     if (action === 'add' && value.trim()) {
+      const max = maxByField[field] ?? 100;
       setTourForm(prev => ({
         ...prev,
-        [field]: [...prev[field], value.trim()]
+        [field]: [...(prev[field] || [])].length < max ? [...prev[field], value.trim()] : prev[field]
       }));
     } else if (action === 'remove') {
-      setTourForm(prev => ({
-        ...prev,
-        [field]: prev[field].filter((_, index) => index !== value)
-      }));
+      setTourForm(prev => {
+        const nextList = prev[field].filter((_, index) => index !== value);
+        let nextPrimary = prev.primaryImageIndex;
+        if (field === 'imageUrls') {
+          if (value < prev.primaryImageIndex) nextPrimary = prev.primaryImageIndex - 1;
+          else if (value === prev.primaryImageIndex) nextPrimary = Math.max(0, prev.primaryImageIndex - 1);
+          nextPrimary = Math.min(nextPrimary, nextList.length - 1);
+          if (nextList.length === 0) nextPrimary = 0;
+        }
+        return { ...prev, [field]: nextList, ...(field === 'imageUrls' ? { primaryImageIndex: Math.max(0, nextPrimary) } : {}) };
+      });
     }
   };
 
@@ -113,42 +159,40 @@ const CreateTour = () => {
     const newErrors = {};
 
     switch (step) {
-      case 1:
-        if (!tourForm.title.trim()) {
-          newErrors.title = 'Tour title is required';
-        }
-        if (!tourForm.description.trim()) {
-          newErrors.description = 'Tour description is required';
-        } else if (tourForm.description.length < 50) {
-          newErrors.description = 'Description must be at least 50 characters';
-        }
-        if (!tourForm.category) {
-          newErrors.category = 'Category is required';
-        }
+      case 1: {
+        const title = tourForm.title.trim();
+        if (!title) newErrors.title = 'Tour title is required';
+        else if (title.length < 3) newErrors.title = 'Title must be at least 3 characters';
+        else if (title.length > 200) newErrors.title = 'Title must be at most 200 characters';
+        const desc = tourForm.description.trim();
+        if (!desc) newErrors.description = 'Tour description is required';
+        else if (desc.length < 10) newErrors.description = 'Description must be at least 10 characters';
+        else if (desc.length > 2000) newErrors.description = 'Description must be at most 2000 characters';
+        if (!tourForm.category) newErrors.category = 'Category is required';
         break;
-      
-      case 2:
-        if (!tourForm.duration.trim()) {
-          newErrors.duration = 'Duration is required';
-        }
-        if (!tourForm.maxGroupSize) {
-          newErrors.maxGroupSize = 'Maximum group size is required';
-        } else if (isNaN(tourForm.maxGroupSize) || parseInt(tourForm.maxGroupSize) <= 0) {
-          newErrors.maxGroupSize = 'Group size must be a positive number';
-        }
-        if (!tourForm.price) {
-          newErrors.price = 'Price is required';
-        } else if (isNaN(tourForm.price) || parseFloat(tourForm.price) <= 0) {
-          newErrors.price = 'Price must be a positive number';
-        }
+      }
+      case 2: {
+        const hours = Number(tourForm.durationHours);
+        if (tourForm.durationHours === '' || isNaN(hours)) newErrors.durationHours = 'Duration is required';
+        else if (hours < 1 || hours > 168) newErrors.durationHours = 'Duration must be between 1 and 168 hours';
+        const size = Number(tourForm.maxGroupSize);
+        if (tourForm.maxGroupSize === '' || isNaN(size)) newErrors.maxGroupSize = 'Max group size is required';
+        else if (size < 1 || size > 50) newErrors.maxGroupSize = 'Group size must be between 1 and 50';
+        const price = parseFloat(tourForm.price);
+        if (!tourForm.price || isNaN(price)) newErrors.price = 'Price is required';
+        else if (price < 0.01 || price > 10000) newErrors.price = 'Price must be between 0.01 and 10,000';
         break;
-      
+      }
       case 3:
-        if (!tourForm.meetingPoint.trim()) {
-          newErrors.meetingPoint = 'Meeting point is required';
-        }
+        if (tourForm.meetingPoint.length > 500) newErrors.meetingPoint = 'Meeting point must be at most 500 characters';
+        if ((tourForm.cancellationPolicy || '').length > 1000) newErrors.cancellationPolicy = 'Cancellation policy must be at most 1000 characters';
         break;
-      
+      case 4:
+        if ((tourForm.highlights || []).length > 20) newErrors.highlights = 'Maximum 20 highlights';
+        if ((tourForm.includes || []).length > 30) newErrors.includes = 'Maximum 30 items';
+        if ((tourForm.excludes || []).length > 30) newErrors.excludes = 'Maximum 30 items';
+        if ((tourForm.languages || []).length > 10) newErrors.languages = 'Maximum 10 languages';
+        break;
       default:
         break;
     }
@@ -169,64 +213,47 @@ const CreateTour = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateStep(currentStep)) {
-      return;
-    }
+    if (!validateStep(currentStep)) return;
 
     setIsLoading(true);
     setMessage({ type: '', text: '' });
 
-    const tourData = {
-      title: tourForm.title,
-      description: tourForm.description,
+    const tourPayload = {
+      title: tourForm.title.trim(),
+      description: tourForm.description.trim(),
       category: tourForm.category,
-      durationHours: parseInt(tourForm.duration, 10) || 0,
-      maxGroupSize: parseInt(tourForm.maxGroupSize, 10) || 0,
+      durationHours: Number(tourForm.durationHours) || 1,
+      maxGroupSize: Number(tourForm.maxGroupSize) || 10,
       pricePerPerson: parseFloat(tourForm.price) || 0,
-      instantBooking: false,
-      securePayment: true,
-      languages: ['English'],
-      highlights: tourForm.highlights,
-      includedItems: tourForm.includes,
-      excludedItems: tourForm.excludes,
-      meetingPoint: tourForm.meetingPoint,
-      cancellationPolicy: tourForm.cancellationPolicy,
-      imageUrls: [],
-      primaryImageIndex: 0
+      instantBooking: Boolean(tourForm.instantBooking),
+      securePayment: Boolean(tourForm.securePayment),
+      languages: tourForm.languages || [],
+      highlights: (tourForm.highlights || []).slice(0, 20),
+      includedItems: (tourForm.includes || []).slice(0, 30),
+      excludedItems: (tourForm.excludes || []).slice(0, 30),
+      meetingPoint: (tourForm.meetingPoint || '').trim().slice(0, 500),
+      cancellationPolicy: (tourForm.cancellationPolicy || '').trim().slice(0, 1000),
+      imageUrls: (tourForm.imageUrls || []).slice(0, 10),
+      primaryImageIndex: Math.max(0, Math.min((tourForm.imageUrls || []).length - 1, Number(tourForm.primaryImageIndex) || 0))
     };
 
     try {
-      const isUpdate = isEditMode && tourId;
-      const url = isUpdate
-        ? buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE, { id: tourId })
-        : buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.CREATE);
-      const method = isUpdate ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(tourData)
-      });
-
-      logApiCall(method, url, tourData, response);
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || (isUpdate ? 'Failed to update tour' : 'Failed to create tour'));
+      if (isEditMode && tourId) {
+        const url = buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.UPDATE, { id: tourId });
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(tourPayload)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || 'Failed to update tour');
+        setMessage({ type: 'success', text: 'Tour updated successfully! Redirecting...' });
+        setTimeout(() => navigate(user?.role === 'ADMIN' ? '/admin' : '/guide-tours'), 1500);
+      } else {
+        const data = await createTourApi(tourPayload, token);
+        setMessage({ type: 'success', text: 'Tour created successfully! Redirecting to tour...' });
+        setTimeout(() => navigate(`/tour/${data.id}`), 1500);
       }
-
-      setMessage({
-        type: 'success',
-        text: isUpdate ? 'Tour updated successfully! Redirecting...' : 'Tour created successfully! Redirecting to your tours...'
-      });
-
-      const redirectTo = user?.role === 'ADMIN' ? '/admin' : '/guide-tours';
-      setTimeout(() => navigate(redirectTo), 1500);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || (isEditMode ? 'Failed to update tour' : 'Failed to create tour') });
     } finally {
@@ -235,10 +262,11 @@ const CreateTour = () => {
   };
 
   const steps = [
-    { number: 1, title: 'Basic Information', description: 'Tour title, description, and category' },
-    { number: 2, title: 'Details & Pricing', description: 'Duration, group size, and price' },
-    { number: 3, title: 'Logistics', description: 'Meeting point and cancellation policy' },
-    { number: 4, title: 'Additional Info', description: 'What\'s included, excluded, and highlights' }
+    { number: 1, title: 'Basic Information', description: 'Title, description, category' },
+    { number: 2, title: 'Details & Pricing', description: 'Duration (hours), group size, price' },
+    { number: 3, title: 'Logistics', description: 'Meeting point, cancellation policy' },
+    { number: 4, title: 'Additional Info', description: 'Included, excluded, highlights, languages' },
+    { number: 5, title: 'Images', description: 'Upload or paste image URLs' }
   ];
 
   const canAccess = user && (user.role === 'GUIDE' || (isEditMode && user.role === 'ADMIN'));
@@ -350,14 +378,16 @@ const CreateTour = () => {
                         name="title"
                         value={tourForm.title}
                         onChange={handleInputChange}
+                        maxLength={200}
                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.title ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        placeholder="e.g., Sunset Beach Adventure"
+                        placeholder="e.g. Sunset Sail & Tea Tasting"
                       />
                       {errors.title && (
                         <p className="mt-1 text-sm text-red-600">{errors.title}</p>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">{tourForm.title.length}/200 (min 3)</p>
                     </div>
 
                     <div>
@@ -371,18 +401,9 @@ const CreateTour = () => {
                         }`}
                       >
                         <option value="">Select category</option>
-                        <option value="TEA_TOURS">Tea Tours</option>
-                        <option value="BEACH_TOURS">Beach Tours</option>
-                        <option value="CULTURAL_TOURS">Cultural Tours</option>
-                        <option value="ADVENTURE_TOURS">Adventure Tours</option>
-                        <option value="FOOD_TOURS">Food Tours</option>
-                        <option value="NATURE_TOURS">Nature Tours</option>
-                        <option value="HISTORICAL_TOURS">Historical Tours</option>
-                        <option value="WILDLIFE_TOURS">Wildlife Tours</option>
-                        <option value="WATER_SPORTS">Water Sports</option>
-                        <option value="HIKING_TOURS">Hiking Tours</option>
-                        <option value="PHOTOGRAPHY_TOURS">Photography Tours</option>
-                        <option value="WELLNESS_TOURS">Wellness Tours</option>
+                        {TOUR_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
                       </select>
                       {errors.category && (
                         <p className="mt-1 text-sm text-red-600">{errors.category}</p>
@@ -399,13 +420,13 @@ const CreateTour = () => {
                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.description ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        placeholder="Describe your tour experience, what travelers will see and do, and why they should choose your tour..."
+                        placeholder="Describe your tour (10–2000 characters)..."
                       />
                       {errors.description && (
                         <p className="mt-1 text-sm text-red-600">{errors.description}</p>
                       )}
                       <p className="mt-1 text-xs text-gray-500">
-                        {tourForm.description.length}/1000 characters (minimum 50)
+                        {tourForm.description.length}/2000 (min 10)
                       </p>
                     </div>
                   </div>
@@ -418,51 +439,35 @@ const CreateTour = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Details & Pricing</h3>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                         <div>
-                       <label className="block text-sm font-medium text-gray-700">Duration (Hours) *</label>
-                       <input
-                         type="number"
-                         name="duration"
-                         value={tourForm.duration}
-                         onChange={handleInputChange}
-                         min="1"
-                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                           errors.duration ? 'border-red-500' : 'border-gray-300'
-                         }`}
-                         placeholder="e.g., 4"
-                       />
-                       {errors.duration && (
-                         <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
-                       )}
-                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Duration *</label>
+                      <label className="block text-sm font-medium text-gray-700">Duration (hours) *</label>
                       <input
-                        type="text"
-                        name="duration"
-                        value={tourForm.duration}
+                        type="number"
+                        name="durationHours"
+                        value={tourForm.durationHours}
                         onChange={handleInputChange}
+                        min={1}
+                        max={168}
                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                          errors.duration ? 'border-red-500' : 'border-gray-300'
+                          errors.durationHours ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        placeholder="e.g., 4 hours, 1 day"
+                        placeholder="e.g. 4"
                       />
-                      {errors.duration && (
-                        <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
+                      {errors.durationHours && (
+                        <p className="mt-1 text-sm text-red-600">{errors.durationHours}</p>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">1–168 hours (max 1 week)</p>
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Max Group Size *</label>
+                      <label className="block text-sm font-medium text-gray-700">Max group size *</label>
                       <input
                         type="number"
                         name="maxGroupSize"
                         value={tourForm.maxGroupSize}
                         onChange={handleInputChange}
-                        min="1"
+                        min={1}
+                        max={50}
                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.maxGroupSize ? 'border-red-500' : 'border-gray-300'
                         }`}
@@ -471,28 +476,28 @@ const CreateTour = () => {
                       {errors.maxGroupSize && (
                         <p className="mt-1 text-sm text-red-600">{errors.maxGroupSize}</p>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">1–50</p>
                     </div>
-
-                                         <div>
-                       <label className="block text-sm font-medium text-gray-700">Price Per Person (USD) *</label>
-                       <input
-                         type="number"
-                         name="price"
-                         value={tourForm.price}
-                         onChange={handleInputChange}
-                         min="0"
-                         step="0.01"
-                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-                           errors.price ? 'border-red-500' : 'border-gray-300'
-                         }`}
-                         placeholder="50.00"
-                       />
-                       {errors.price && (
-                         <p className="mt-1 text-sm text-red-600">{errors.price}</p>
-                       )}
-                     </div>
-
-                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700">Price per person (USD) *</label>
+                      <input
+                        type="number"
+                        name="price"
+                        value={tourForm.price}
+                        onChange={handleInputChange}
+                        min={0.01}
+                        max={10000}
+                        step="0.01"
+                        className={`mt-1 block w-full max-w-xs px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          errors.price ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="65.00"
+                      />
+                      {errors.price && (
+                        <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">0.01 – 10,000</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -506,16 +511,17 @@ const CreateTour = () => {
                   
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Meeting Point *</label>
+                      <label className="block text-sm font-medium text-gray-700">Meeting point (optional, max 500 chars)</label>
                       <input
                         type="text"
                         name="meetingPoint"
                         value={tourForm.meetingPoint}
                         onChange={handleInputChange}
+                        maxLength={500}
                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                           errors.meetingPoint ? 'border-red-500' : 'border-gray-300'
                         }`}
-                        placeholder="e.g., Hotel lobby, Central Station, Specific landmark"
+                        placeholder="e.g. Harbour Pier 2, next to the blue kiosk"
                       />
                       {errors.meetingPoint && (
                         <p className="mt-1 text-sm text-red-600">{errors.meetingPoint}</p>
@@ -523,15 +529,17 @@ const CreateTour = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Cancellation Policy</label>
+                      <label className="block text-sm font-medium text-gray-700">Cancellation policy (optional, max 1000 chars)</label>
                       <textarea
                         name="cancellationPolicy"
                         rows={4}
+                        maxLength={1000}
                         value={tourForm.cancellationPolicy}
                         onChange={handleInputChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="e.g., Free cancellation up to 24 hours before the tour. No refunds for cancellations within 24 hours."
+                        placeholder="e.g. Free cancellation up to 24 hours before start."
                       />
+                      <p className="mt-1 text-xs text-gray-500">{(tourForm.cancellationPolicy || '').length}/1000</p>
                     </div>
                   </div>
                 </div>
@@ -543,38 +551,82 @@ const CreateTour = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
-                  
                   <div className="space-y-6">
+                    <div className="flex flex-wrap gap-6">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={tourForm.instantBooking}
+                          onChange={(e) => setTourForm(prev => ({ ...prev, instantBooking: e.target.checked }))}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Instant booking</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={tourForm.securePayment}
+                          onChange={(e) => setTourForm(prev => ({ ...prev, securePayment: e.target.checked }))}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Secure payment</span>
+                      </label>
+                    </div>
                     <ArrayField
-                      label="What's Included"
+                      label="Languages (max 10)"
+                      field="languages"
+                      values={tourForm.languages || []}
+                      onAdd={(value) => handleArrayInputChange('languages', value, 'add')}
+                      onRemove={(index) => handleArrayInputChange('languages', index, 'remove')}
+                      placeholder="e.g. English, Spanish"
+                    />
+                    <ArrayField
+                      label="What's included (max 30)"
                       field="includes"
                       values={tourForm.includes}
                       onAdd={(value) => handleArrayInputChange('includes', value, 'add')}
                       onRemove={(index) => handleArrayInputChange('includes', index, 'remove')}
-                      placeholder="e.g., Professional guide, transportation, lunch"
+                      placeholder="e.g. Guide, transport, lunch"
                     />
-
                     <ArrayField
-                      label="What's Not Included"
+                      label="What's not included (max 30)"
                       field="excludes"
                       values={tourForm.excludes}
                       onAdd={(value) => handleArrayInputChange('excludes', value, 'add')}
                       onRemove={(index) => handleArrayInputChange('excludes', index, 'remove')}
-                      placeholder="e.g., Personal expenses, tips, insurance"
+                      placeholder="e.g. Personal expenses, tips"
                     />
-
-                    
-
                     <ArrayField
-                      label="Highlights"
+                      label="Highlights (max 20)"
                       field="highlights"
                       values={tourForm.highlights}
                       onAdd={(value) => handleArrayInputChange('highlights', value, 'add')}
                       onRemove={(index) => handleArrayInputChange('highlights', index, 'remove')}
-                      placeholder="e.g., Ancient temple visit, scenic viewpoints"
+                      placeholder="e.g. Sunset views, tea tasting"
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Step 5: Images */}
+            {currentStep === 5 && (
+              <div className="space-y-6">
+                <ImagePicker
+                  label="Tour images"
+                  helpText="Upload images (after saving) or paste URLs (max 10). Set which image is the cover."
+                  value={tourForm.imageUrls || []}
+                  onChange={(urls) => setTourForm(prev => ({ ...prev, imageUrls: urls }))}
+                  primaryIndex={tourForm.primaryImageIndex}
+                  onPrimaryChange={(index) => setTourForm(prev => ({ ...prev, primaryImageIndex: index }))}
+                  maxFiles={10}
+                  enableUpload={true}
+                  allowUrlInput={true}
+                  tourId={isEditMode && tourId ? Number(tourId) : null}
+                />
+                {errors.imageUrls && (
+                  <p className="mt-1 text-sm text-red-600">{errors.imageUrls}</p>
+                )}
               </div>
             )}
 
@@ -607,12 +659,12 @@ const CreateTour = () => {
                     {isLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Creating Tour...
+                        {isEditMode ? 'Updating...' : 'Creating...'}
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />
-                        Create Tour
+                        {isEditMode ? 'Update Tour' : 'Create Tour'}
                       </>
                     )}
                   </button>

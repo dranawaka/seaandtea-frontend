@@ -1,13 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield } from 'lucide-react';
+import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getUnreadCountApi } from '../config/api';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const { isAuthenticated, user, token, logout } = useAuth();
   const profileDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      getUnreadCountApi(token)
+        .then((res) => setUnreadMessages(res.unreadCount ?? 0))
+        .catch(() => setUnreadMessages(0));
+    } else {
+      setUnreadMessages(0);
+    }
+  }, [isAuthenticated, token]);
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -138,7 +150,19 @@ const Navbar = () => {
                           My Profile
                         </Link>
                       )}
-                      
+                      <Link
+                        to="/messages"
+                        className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-3" />
+                        Inbox
+                        {unreadMessages > 0 && (
+                          <span className="ml-auto rounded-full bg-primary-600 text-white text-xs font-semibold min-w-[1.25rem] h-5 flex items-center justify-center px-1.5">
+                            {unreadMessages > 99 ? '99+' : unreadMessages}
+                          </span>
+                        )}
+                      </Link>
                       {user?.role === 'GUIDE' && (
                         <>
                       <Link
@@ -265,7 +289,19 @@ const Navbar = () => {
                     <User className="h-4 w-4 inline mr-2" />
                     My Profile
                   </Link>
-                  
+                  <Link
+                    to="/messages"
+                    className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <MessageCircle className="h-4 w-4 inline mr-2" />
+                    Inbox
+                    {unreadMessages > 0 && (
+                      <span className="ml-2 rounded-full bg-primary-600 text-white text-xs font-semibold px-1.5">
+                        {unreadMessages > 99 ? '99+' : unreadMessages}
+                      </span>
+                    )}
+                  </Link>
                   {user?.role === 'GUIDE' && (
                     <>
                       <Link

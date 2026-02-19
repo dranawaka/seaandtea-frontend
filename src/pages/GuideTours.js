@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit3, Trash2, Eye, Calendar, MapPin, DollarSign, Users, Clock, Star, Search, Filter, X } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, logApiCall } from '../config/api';
+import { buildApiUrl, API_CONFIG, logApiCall, getTourById } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import ImagePicker from '../components/ImagePicker';
 
 const GuideTours = () => {
   const navigate = useNavigate();
@@ -30,7 +31,10 @@ const GuideTours = () => {
     excludes: [],
     highlights: [],
     meetingPoint: '',
-    cancellationPolicy: ''
+    cancellationPolicy: '',
+    imageUrls: [],
+    primaryImageIndex: 0,
+    difficulty: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -164,19 +168,19 @@ const GuideTours = () => {
         title: tourForm.title,
         description: tourForm.description,
         category: tourForm.category,
-        durationHours: parseInt(tourForm.duration),
-        maxGroupSize: parseInt(tourForm.maxGroupSize),
-        pricePerPerson: parseFloat(tourForm.price),
+        durationHours: parseInt(tourForm.duration, 10) || 1,
+        maxGroupSize: parseInt(tourForm.maxGroupSize, 10) || 10,
+        pricePerPerson: parseFloat(tourForm.price) || 0,
         instantBooking: false,
         securePayment: true,
-        languages: ["English"], // Default language
-        highlights: tourForm.highlights,
-        includedItems: tourForm.includes,
-        excludedItems: tourForm.excludes,
-        meetingPoint: tourForm.meetingPoint,
-        cancellationPolicy: tourForm.cancellationPolicy,
-        imageUrls: [],
-        primaryImageIndex: 0
+        languages: ["English"],
+        highlights: tourForm.highlights || [],
+        includedItems: tourForm.includes || [],
+        excludedItems: tourForm.excludes || [],
+        meetingPoint: tourForm.meetingPoint || '',
+        cancellationPolicy: tourForm.cancellationPolicy || '',
+        imageUrls: (tourForm.imageUrls || []).slice(0, 10),
+        primaryImageIndex: Math.max(0, Math.min((tourForm.imageUrls || []).length - 1, Number(tourForm.primaryImageIndex) || 0))
       };
       
       console.log(`🚀 Creating tour: ${url}`, tourData);
@@ -230,19 +234,19 @@ const GuideTours = () => {
         title: tourForm.title,
         description: tourForm.description,
         category: tourForm.category,
-        durationHours: parseInt(tourForm.duration),
-        maxGroupSize: parseInt(tourForm.maxGroupSize),
-        pricePerPerson: parseFloat(tourForm.price),
+        durationHours: parseInt(tourForm.duration, 10) || 1,
+        maxGroupSize: parseInt(tourForm.maxGroupSize, 10) || 10,
+        pricePerPerson: parseFloat(tourForm.price) || 0,
         instantBooking: false,
         securePayment: true,
-        languages: ["English"], // Default language
-        highlights: tourForm.highlights,
-        includedItems: tourForm.includes,
-        excludedItems: tourForm.excludes,
-        meetingPoint: tourForm.meetingPoint,
-        cancellationPolicy: tourForm.cancellationPolicy,
-        imageUrls: [],
-        primaryImageIndex: 0
+        languages: ["English"],
+        highlights: tourForm.highlights || [],
+        includedItems: tourForm.includes || [],
+        excludedItems: tourForm.excludes || [],
+        meetingPoint: tourForm.meetingPoint || '',
+        cancellationPolicy: tourForm.cancellationPolicy || '',
+        imageUrls: (tourForm.imageUrls || []).slice(0, 10),
+        primaryImageIndex: Math.max(0, Math.min((tourForm.imageUrls || []).length - 1, Number(tourForm.primaryImageIndex) || 0))
       };
       
       console.log(`🚀 Updating tour ${selectedTour.id}: ${url}`, tourData);
@@ -321,22 +325,37 @@ const GuideTours = () => {
     }
   };
 
-  const openEditModal = (tour) => {
+  const openEditModal = async (tour) => {
     setSelectedTour(tour);
-    setTourForm({
-      title: tour.title || '',
-      description: tour.description || '',
-      category: tour.category || '',
-      location: tour.location || '',
-      duration: tour.duration || '',
-      maxGroupSize: tour.maxGroupSize?.toString() || '',
-      price: tour.price?.toString() || '',
-      includes: tour.includes || [],
-      excludes: tour.excludes || [],
-      highlights: tour.highlights || [],
-      meetingPoint: tour.meetingPoint || '',
-      cancellationPolicy: tour.cancellationPolicy || ''
-    });
+    try {
+      const fullTour = await getTourById(tour.id);
+      const urls = (fullTour.images || []).map(img => img.imageUrl || img.url).filter(Boolean);
+      const primaryIdx = (fullTour.images || []).findIndex(img => img.isPrimary);
+      const durationVal = fullTour.durationHours != null ? fullTour.durationHours : fullTour.duration;
+      const durationStr = durationVal != null ? String(durationVal) : '';
+      const priceVal = fullTour.pricePerPerson != null ? fullTour.pricePerPerson : fullTour.price;
+      const priceStr = priceVal != null ? String(priceVal) : '';
+      setTourForm({
+        title: fullTour.title || '',
+        description: fullTour.description || '',
+        category: fullTour.category || '',
+        location: fullTour.location || '',
+        duration: durationStr,
+        maxGroupSize: (fullTour.maxGroupSize != null ? fullTour.maxGroupSize : 10)?.toString() || '10',
+        price: priceStr,
+        includes: fullTour.includedItems || fullTour.includes || [],
+        excludes: fullTour.excludedItems || fullTour.excludes || [],
+        highlights: fullTour.highlights || [],
+        meetingPoint: fullTour.meetingPoint || '',
+        cancellationPolicy: fullTour.cancellationPolicy || '',
+        imageUrls: urls,
+        primaryImageIndex: primaryIdx >= 0 ? primaryIdx : 0,
+        difficulty: fullTour.difficulty || ''
+      });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to load tour details' });
+      return;
+    }
     setShowEditModal(true);
   };
 
@@ -353,7 +372,10 @@ const GuideTours = () => {
       excludes: [],
       highlights: [],
       meetingPoint: '',
-      cancellationPolicy: ''
+      cancellationPolicy: '',
+      imageUrls: [],
+      primaryImageIndex: 0,
+      difficulty: ''
     });
     setErrors({});
   };
@@ -653,6 +675,7 @@ const GuideTours = () => {
           errors={errors}
           isLoading={isLoading}
           mode="edit"
+          editTourId={selectedTour?.id ?? null}
         />
       )}
     </div>
@@ -660,7 +683,7 @@ const GuideTours = () => {
 };
 
 // Tour Modal Component
-const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInputChange, handleArrayInputChange, errors, isLoading, mode }) => {
+const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInputChange, handleArrayInputChange, errors, isLoading, mode, editTourId = null }) => {
   if (!isOpen) return null;
 
   return (
@@ -748,20 +771,23 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Duration *</label>
+                <label className="block text-sm font-medium text-gray-700">Duration (hours) *</label>
                 <input
-                  type="text"
+                  type="number"
                   name="duration"
                   value={tourForm.duration}
                   onChange={handleInputChange}
+                  min={1}
+                  max={168}
                   className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                     errors.duration ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="e.g., 4 hours, 1 day"
+                  placeholder="e.g. 4"
                 />
                 {errors.duration && (
                   <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">1–168 hours</p>
               </div>
             </div>
 
@@ -894,6 +920,20 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
               onAdd={(value) => handleArrayInputChange('highlights', value, 'add')}
               onRemove={(index) => handleArrayInputChange('highlights', index, 'remove')}
               placeholder="e.g., Ancient temple visit, scenic viewpoints"
+            />
+
+            {/* Tour images - upload or paste URLs; set cover image */}
+            <ImagePicker
+              label="Tour images"
+              helpText="Upload or add image URLs (max 10). Set which image is the cover."
+              value={tourForm.imageUrls || []}
+              onChange={(urls) => setTourForm(prev => ({ ...prev, imageUrls: urls }))}
+              primaryIndex={tourForm.primaryImageIndex}
+              onPrimaryChange={(index) => setTourForm(prev => ({ ...prev, primaryImageIndex: index }))}
+              maxFiles={10}
+              enableUpload={true}
+              allowUrlInput={true}
+              tourId={editTourId}
             />
 
             {/* Action Buttons */}

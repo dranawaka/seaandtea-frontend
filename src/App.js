@@ -18,8 +18,11 @@ import Register from './pages/Register';
 import AdminDashboard from './components/AdminDashboard';
 import AdminEditGuide from './pages/AdminEditGuide';
 import AdminEditProduct from './pages/AdminEditProduct';
+import AdminNewsEdit from './pages/AdminNewsEdit';
+import NewsPostDetail from './pages/NewsPostDetail';
 import SitemapGenerator from './pages/SitemapGenerator';
 import GuideProfileViewer from './components/GuideProfileViewer';
+import Messages from './pages/Messages';
 import './App.css';
 
 function App() {
@@ -47,6 +50,10 @@ function App() {
               <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />
               <Route path="/admin/product/new" element={<AdminEditProduct />} />
               <Route path="/admin/product/:id/edit" element={<AdminEditProduct />} />
+              <Route path="/admin/news/new" element={<AdminNewsEdit />} />
+              <Route path="/admin/news/:id/edit" element={<AdminNewsEdit />} />
+              <Route path="/news/:id" element={<NewsPostDetail />} />
+              <Route path="/messages" element={<Messages />} />
               <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

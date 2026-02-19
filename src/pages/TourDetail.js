@@ -26,6 +26,10 @@ const TourDetail = () => {
 
   const normalizeTour = (t) => {
     if (!t) return t;
+    const itinerary = Array.isArray(t.itinerary) ? t.itinerary.map((day) => ({
+      ...day,
+      activities: Array.isArray(day?.activities) ? day.activities : []
+    })) : [];
     return {
       ...t,
       rating: t.averageRating ?? t.rating ?? 0,
@@ -34,7 +38,11 @@ const TourDetail = () => {
       image: t.imageUrl ?? t.images?.[0] ?? t.image,
       location: t.location ?? t.destination,
       duration: t.duration ?? t.durationHours ? `${t.durationHours}h` : '',
-      groupSize: t.maxGroupSize ?? t.groupSize
+      groupSize: t.maxGroupSize ?? t.groupSize,
+      highlights: Array.isArray(t.highlights) ? t.highlights : [],
+      itinerary,
+      included: Array.isArray(t.included) ? t.included : [],
+      notIncluded: Array.isArray(t.notIncluded) ? t.notIncluded : []
     };
   };
 

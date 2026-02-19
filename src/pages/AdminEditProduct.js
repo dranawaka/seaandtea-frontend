@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Shield, AlertCircle, CheckCircle, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 import { getProducts, saveProducts, getProductById, fetchProductByIdFromApi, mapProductToApi } from '../data/shopProducts';
 import { updateProductApi, createProductApi } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import ImagePicker from '../components/ImagePicker';
 
 const CATEGORIES = [
   { id: 'sea', name: 'Sea & Beach Wears and Handy Crafts' },
@@ -100,25 +101,6 @@ const AdminEditProduct = () => {
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-  };
-
-  const handleImageChange = (index, value) => {
-    setForm(prev => {
-      const next = [...(prev.images || [])];
-      next[index] = value;
-      return { ...prev, images: next };
-    });
-  };
-
-  const handleAddImage = () => {
-    setForm(prev => ({ ...prev, images: [...(prev.images || []), ''] }));
-  };
-
-  const handleRemoveImage = (index) => {
-    setForm(prev => ({
-      ...prev,
-      images: (prev.images || []).filter((_, i) => i !== index)
-    }));
   };
 
   const validate = () => {
@@ -295,46 +277,15 @@ const AdminEditProduct = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product pictures</label>
-            <p className="text-xs text-gray-500 mb-2">Add one or more image URLs. The first image is used as the main product image.</p>
-            {(form.images || []).map((url, index) => (
-              <div key={index} className="flex gap-2 items-start mb-3">
-                <div className="flex-1 flex gap-2 items-start">
-                  <div className="flex-shrink-0 w-16 h-16 rounded border border-gray-200 bg-gray-50 overflow-hidden">
-                    {url && url.trim().startsWith('http') ? (
-                      <img src={url.trim()} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => handleImageChange(index, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                    placeholder="https://..."
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-md flex-shrink-0"
-                  title="Remove image"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddImage}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add picture
-            </button>
+            <ImagePicker
+              label="Product pictures"
+              helpText="Upload images or paste URLs. The first image is used as the main product image."
+              value={(form.images || []).filter(Boolean)}
+              onChange={(urls) => setForm(prev => ({ ...prev, images: urls.length > 0 ? urls : [''] }))}
+              maxFiles={10}
+              enableUpload={true}
+              allowUrlInput={true}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
