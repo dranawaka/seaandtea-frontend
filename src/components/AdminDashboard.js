@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, CheckCircle, XCircle, Eye, UserCheck, AlertCircle, Trash2, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight, RotateCcw, X, Search, ChevronsLeft, ChevronsRight, Plus, Newspaper } from 'lucide-react';
-import { buildApiUrl, API_CONFIG, getAllGuides, getAdminUserById, resetUserReviews, deleteProductApi, listAllNewsAdminApi, deleteNewsPostApi } from '../config/api';
+import { Shield, Users, CheckCircle, XCircle, Eye, UserCheck, AlertCircle, Trash2, Edit2, ShoppingBag, UserX, ChevronLeft, ChevronRight, RotateCcw, X, Search, ChevronsLeft, ChevronsRight, Plus, Newspaper, Image as ImageIcon } from 'lucide-react';
+import { buildApiUrl, API_CONFIG, getAllGuides, getAdminUserById, resetUserReviews, deleteProductApi, listAllNewsAdminApi, deleteNewsPostApi, getHomepageSliderApi, uploadHomepageSliderImageApi, deleteHomepageSliderImageApi, validateUploadFile } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { fetchProductsFromApi } from '../data/shopProducts';
 
@@ -30,6 +30,13 @@ const AdminDashboard = () => {
   const [deletingNewsId, setDeletingNewsId] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [sliderImages, setSliderImages] = useState([]);
+  const [sliderLoading, setSliderLoading] = useState(false);
+  const [sliderUploading, setSliderUploading] = useState(false);
+  const [deletingSliderId, setDeletingSliderId] = useState(null);
+  const [sliderFile, setSliderFile] = useState(null);
+  const [sliderAltText, setSliderAltText] = useState('');
+  const [sliderSortOrder, setSliderSortOrder] = useState('');
 
   // Filter users by search and filters (client-side on current page)
   const filteredUsers = useMemo(() => {
@@ -52,6 +59,7 @@ const AdminDashboard = () => {
       loadAllProducts();
       loadAllUsers(0, 20);
       loadAllNews(0, 10);
+      loadSliderImages();
     }
   }, [user]);
 
@@ -364,6 +372,71 @@ const AdminDashboard = () => {
       setError(err.message || 'Failed to delete post.');
     } finally {
       setDeletingNewsId(null);
+    }
+  };
+
+  const loadSliderImages = async () => {
+    try {
+      setSliderLoading(true);
+      setError(null);
+      const list = await getHomepageSliderApi();
+      setSliderImages(Array.isArray(list) ? list.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) : []);
+    } catch (err) {
+      console.error('Error loading homepage slider:', err);
+      setSliderImages([]);
+      setError(err.message || 'Failed to load homepage slider.');
+    } finally {
+      setSliderLoading(false);
+    }
+  };
+
+  const uploadSliderImage = async (e) => {
+    e.preventDefault();
+    const file = sliderFile || (e.target?.files?.[0]);
+    if (!file) {
+      setError('Please select an image (JPEG, PNG, WebP; max 10 MB).');
+      return;
+    }
+    const err = validateUploadFile(file);
+    if (err) {
+      setError(err);
+      return;
+    }
+    try {
+      setSliderUploading(true);
+      setError(null);
+      const options = {};
+      if (sliderAltText.trim()) options.altText = sliderAltText.trim();
+      if (sliderSortOrder !== '' && !Number.isNaN(Number(sliderSortOrder))) options.sortOrder = Number(sliderSortOrder);
+      await uploadHomepageSliderImageApi(file, options, token);
+      setSuccess('Slider image added.');
+      setTimeout(() => setSuccess(null), 3000);
+      setSliderFile(null);
+      setSliderAltText('');
+      setSliderSortOrder('');
+      const input = document.getElementById('slider-file-input');
+      if (input) input.value = '';
+      loadSliderImages();
+    } catch (err) {
+      setError(err.message || 'Failed to upload slider image.');
+    } finally {
+      setSliderUploading(false);
+    }
+  };
+
+  const deleteSliderImage = async (id) => {
+    if (!window.confirm('Remove this image from the homepage slider?')) return;
+    try {
+      setDeletingSliderId(id);
+      setError(null);
+      await deleteHomepageSliderImageApi(id, token);
+      setSliderImages(prev => prev.filter((s) => s.id !== id));
+      setSuccess('Slider image removed.');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to remove slider image.');
+    } finally {
+      setDeletingSliderId(null);
     }
   };
 
@@ -1043,6 +1116,99 @@ const AdminDashboard = () => {
                   </div>
                 )}
               </>
+            )}
+          </div>
+        </div>
+
+        {/* Homepage Slider */}
+        <div className="bg-white shadow rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <ImageIcon className="h-5 w-5 text-gray-500 mr-2" />
+                <h2 className="text-lg font-medium text-gray-900">Homepage Slider</h2>
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {sliderImages.length} images
+                </span>
+              </div>
+              <button
+                onClick={loadSliderImages}
+                disabled={sliderLoading}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div className="px-6 py-4 space-y-4">
+            <form onSubmit={uploadSliderImage} className="flex flex-wrap items-end gap-3 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Image (JPEG, PNG, WebP; max 10 MB)</label>
+                <input
+                  id="slider-file-input"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={(e) => setSliderFile(e.target.files?.[0] || null)}
+                  className="block text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Alt text (optional)</label>
+                <input
+                  type="text"
+                  value={sliderAltText}
+                  onChange={(e) => setSliderAltText(e.target.value)}
+                  placeholder="Description for accessibility"
+                  className="block w-48 py-2 px-3 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sort order (optional)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={sliderSortOrder}
+                  onChange={(e) => setSliderSortOrder(e.target.value)}
+                  placeholder="0"
+                  className="block w-24 py-2 px-3 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={sliderUploading || !sliderFile}
+                className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {sliderUploading ? 'Uploading…' : 'Add image'}
+              </button>
+            </form>
+            {sliderLoading ? (
+              <div className="p-6 text-center text-sm text-gray-500">Loading slider images…</div>
+            ) : sliderImages.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No slider images yet. Add one above; the homepage will use default images until then.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {sliderImages.map((img) => (
+                  <div key={img.id} className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <div className="aspect-video bg-gray-200 flex items-center justify-center">
+                      <img src={img.imageUrl} alt={img.altText || 'Slider'} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-2 flex items-center justify-between">
+                      <span className="text-xs text-gray-500 truncate flex-1 mr-2" title={img.altText || ''}>{img.altText || `Order ${img.sortOrder ?? '-'}`}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteSliderImage(img.id)}
+                        disabled={deletingSliderId === img.id}
+                        className="inline-flex items-center p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                        title="Remove from slider"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

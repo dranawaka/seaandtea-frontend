@@ -50,20 +50,14 @@ const Home = () => {
         </div>
         
         {/* Additional Hero Content */}
-        <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white py-20 overflow-hidden">
-          {/* Decorative elements */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-secondary-400/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary-400/20 rounded-full blur-3xl"></div>
-          </div>
-          
+        <div className="relative bg-primary-800 text-white py-20 overflow-hidden">
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 animate-slide-up">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 animate-slide-up">
               The Upwork for
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-secondary-300 to-secondary-100"> Travel Guides</span>
-              <span className="text-2xl md:text-4xl lg:text-5xl font-bold block mt-2">in Sri Lanka</span>
+              <span className="block text-primary-100 mt-1"> Travel Guides</span>
+              <span className="text-2xl md:text-4xl lg:text-5xl font-semibold block mt-2 text-primary-200">in Sri Lanka</span>
             </h1>
-            <p className="text-lg md:text-xl lg:text-2xl mb-10 max-w-3xl mx-auto text-gray-100 leading-relaxed animate-fade-in">
+            <p className="text-lg md:text-xl lg:text-2xl mb-10 max-w-3xl mx-auto text-primary-200 leading-relaxed animate-fade-in">
               Connect with Sri Lanka's best freelance travel guides. Experience beaches, mountains, 
               culture & wildlife within 2-3 hours - all with certified local experts.
             </p>
@@ -73,7 +67,7 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative">
+      <section className="section-padding bg-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
@@ -89,7 +83,7 @@ const Home = () => {
             {features.map((feature, index) => (
               <div key={index} className="card-modern p-8 text-center group">
                 <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                  <div className="p-4 bg-primary-50 rounded-xl group-hover:scale-105 transition-transform duration-200">
                     {feature.icon}
                   </div>
                 </div>
@@ -106,7 +100,7 @@ const Home = () => {
       </section>
 
       {/* Sri Lanka Advantage Section */}
-      <section className="section-padding bg-gradient-to-b from-white to-gray-50">
+      <section className="section-padding bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
@@ -120,8 +114,8 @@ const Home = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             <div className="card-modern p-6 text-center group">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                  <Waves className="h-10 w-10 text-blue-600" />
+                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
+                  <Waves className="h-10 w-10 text-primary-600" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Pristine Beaches</h3>
@@ -130,8 +124,8 @@ const Home = () => {
             
             <div className="card-modern p-6 text-center group">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                  <Mountain className="h-10 w-10 text-green-600" />
+                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
+                  <Mountain className="h-10 w-10 text-primary-600" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Misty Mountains</h3>
@@ -140,8 +134,8 @@ const Home = () => {
             
             <div className="card-modern p-6 text-center group">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                  <Building className="h-10 w-10 text-amber-600" />
+                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
+                  <Building className="h-10 w-10 text-primary-600" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Ancient Culture</h3>
@@ -150,8 +144,8 @@ const Home = () => {
             
             <div className="card-modern p-6 text-center group">
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                  <TreePine className="h-10 w-10 text-emerald-600" />
+                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
+                  <TreePine className="h-10 w-10 text-primary-600" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Wildlife Safaris</h3>
@@ -160,7 +154,7 @@ const Home = () => {
           </div>
           
           <div className="mt-16 text-center">
-            <div className="card-modern p-10 max-w-4xl mx-auto bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+            <div className="card-modern p-10 max-w-4xl mx-auto bg-primary-50/50">
               <h3 className="text-3xl font-extrabold text-gray-900 mb-4 gradient-text">
                 All Within 2-3 Hours Travel
               </h3>
@@ -178,7 +172,7 @@ const Home = () => {
       </section>
 
       {/* Featured Destinations */}
-      <section className="section-padding bg-gradient-to-b from-gray-50 to-white">
+      <section className="section-padding bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
@@ -246,7 +240,7 @@ const Home = () => {
       </section>
 
       {/* Latest News & Articles */}
-      <section className="section-padding bg-gradient-to-b from-white to-gray-50">
+      <section className="section-padding bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
@@ -313,7 +307,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative section-padding bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 text-white overflow-hidden">
+      <section className="relative section-padding bg-primary-800 text-white overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/30 rounded-full blur-3xl"></div>

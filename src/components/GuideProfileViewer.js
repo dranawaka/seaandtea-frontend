@@ -230,7 +230,7 @@ const GuideProfileViewer = () => {
                 />
               ) : null}
               {!profilePicture && (
-                <div className="w-32 h-32 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                <div className="w-32 h-32 bg-primary-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
                   {firstName ? firstName.charAt(0) : 'G'}
                 </div>
               )}

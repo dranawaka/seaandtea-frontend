@@ -71,7 +71,10 @@ export const API_CONFIG = {
       UPLOAD_PROFILE_PICTURE: '/upload/profile-picture',
       UPLOAD_GUIDE_PROFILE_PICTURE: '/upload/guide-profile-picture',
       UPLOAD_TOUR_IMAGE: '/upload/tour/:tourId/image',
-      DELETE_IMAGE: '/upload/image'
+      DELETE_IMAGE: '/upload/image',
+      HOMEPAGE_SLIDER_LIST: '/upload/homepage-slider',
+      HOMEPAGE_SLIDER_ADD: '/upload/homepage-slider',
+      HOMEPAGE_SLIDER_DELETE: '/upload/homepage-slider/:id'
     },
     REVIEWS: {
       LIST: '/reviews',
@@ -227,6 +230,73 @@ export const deleteImageApi = async (imageUrl, token = null) => {
   logApiCall('DELETE', fullUrl);
   const response = await fetch(fullUrl, { method: 'DELETE', headers });
   logApiCall('DELETE', fullUrl, null, response);
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `Delete failed: ${response.status}`);
+  }
+};
+
+/**
+ * List homepage slider images. GET /api/v1/upload/homepage-slider. No auth required.
+ * @returns {Promise<Array<{ id: number, imageUrl: string, sortOrder: number, altText?: string, createdAt: string }>>}
+ */
+export const getHomepageSliderApi = async () => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.FILES.HOMEPAGE_SLIDER_LIST);
+  logApiCall('GET', url);
+  const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+  logApiCall('GET', url, null, response);
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `Failed to load slider: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Add image to homepage slider. POST /api/v1/upload/homepage-slider. ADMIN only.
+ * @param {File} file - Image file (JPEG, PNG, WebP; max 10 MB)
+ * @param {{ sortOrder?: number, altText?: string }} [options]
+ * @param {string} [token] - JWT
+ * @returns {Promise<{ id: number, imageUrl: string, sortOrder: number, altText?: string, createdAt: string }>}
+ */
+export const uploadHomepageSliderImageApi = async (file, options = {}, token = null) => {
+  const authToken = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null);
+  if (!authToken) throw new Error('Authentication required');
+  const err = validateUploadFile(file);
+  if (err) throw new Error(err);
+
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.FILES.HOMEPAGE_SLIDER_ADD);
+  const formData = new FormData();
+  formData.append(UPLOAD_CONSTRAINTS.FORM_FIELD_NAME, file);
+  if (options.sortOrder != null && !Number.isNaN(Number(options.sortOrder))) formData.append('sortOrder', String(Number(options.sortOrder)));
+  if (options.altText != null && String(options.altText).trim()) formData.append('altText', String(options.altText).trim());
+
+  const headers = { 'Authorization': `Bearer ${authToken}` };
+  logApiCall('POST', url, { file: file.name, size: file.size });
+  const response = await fetch(url, { method: 'POST', headers, body: formData });
+  logApiCall('POST', url, null, response);
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || data.error || `Upload failed: ${response.status}`);
+  }
+  return response.json();
+};
+
+/**
+ * Delete homepage slider image by ID. DELETE /api/v1/upload/homepage-slider/{id}. ADMIN only.
+ * @param {number} id - Slider image ID
+ * @param {string} [token] - JWT
+ * @returns {Promise<void>}
+ */
+export const deleteHomepageSliderImageApi = async (id, token = null) => {
+  const authToken = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null);
+  if (!authToken) throw new Error('Authentication required');
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.FILES.HOMEPAGE_SLIDER_DELETE, { id });
+  const headers = { 'Authorization': `Bearer ${authToken}` };
+  logApiCall('DELETE', url);
+  const response = await fetch(url, { method: 'DELETE', headers });
+  logApiCall('DELETE', url, null, response);
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new Error(data.message || data.error || `Delete failed: ${response.status}`);

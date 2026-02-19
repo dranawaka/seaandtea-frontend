@@ -175,7 +175,7 @@ const Messages = () => {
   const currentUserId = user?.id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50/50 via-white to-secondary-50/50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-2 mb-6">
           <MessageCircle className="h-8 w-8 text-primary-600" />

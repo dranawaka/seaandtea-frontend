@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MapPin, Star, Users, Clock, ShoppingBag, Heart, Filter, Search, ArrowRight, Package, Truck, Shield, RefreshCw, Plus, Minus, X, Trash2 } from 'lucide-react';
 import { getProducts, fetchProductsPaginatedFromApi, mapProductFromApi } from '../data/shopProducts';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import { getCartApi, addCartItemApi, updateCartItemApi, removeCartItemApi } from
 const PAGE_SIZE = 12;
 
 const Shop = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token, isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,14 @@ const Shop = () => {
   const [cartTotalAmount, setCartTotalAmount] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('openCart') === '1') {
+      setIsCartOpen(true);
+      searchParams.delete('openCart');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadProducts(page, selectedCategory, searchTerm);
@@ -216,17 +225,17 @@ const Shop = () => {
 
   const shopFeatures = [
     {
-      icon: <Package className="h-8 w-8 text-blue-600" />,
+      icon: <Package className="h-8 w-8 text-primary-600" />,
       title: 'Authentic Products',
       description: 'Curated selection of genuine Sri Lankan products from local artisans and producers.'
     },
     {
-      icon: <Truck className="h-8 w-8 text-green-600" />,
+      icon: <Truck className="h-8 w-8 text-primary-600" />,
       title: 'Worldwide Shipping',
       description: 'Free shipping on orders over $50. Fast and secure delivery to your doorstep.'
     },
     {
-      icon: <Shield className="h-8 w-8 text-purple-600" />,
+      icon: <Shield className="h-8 w-8 text-primary-600" />,
       title: 'Quality Guarantee',
       description: '100% satisfaction guarantee with easy returns and exchanges within 30 days.'
     }
@@ -235,13 +244,12 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+      <section className="relative bg-primary-800 text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Sri Lankan
-              <span className="text-purple-300"> Shop</span>
+              <span className="text-primary-200"> Shop</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               Discover authentic Sri Lankan products, from premium Ceylon tea to handcrafted souvenirs, 
@@ -254,21 +262,6 @@ const Shop = () => {
               <Link to="/guides" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
                 Find Local Guides
               </Link>
-            </div>
-            
-            {/* Cart Icon */}
-            <div className="absolute top-4 right-4">
-              <button
-                onClick={() => setIsCartOpen(true)}
-                className="relative bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-3 text-white hover:bg-opacity-30 transition-all duration-200"
-              >
-                <ShoppingBag className="h-6 w-6" />
-                {getCartItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
-                    {getCartItemCount()}
-                  </span>
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -322,7 +315,7 @@ const Shop = () => {
               className="relative overflow-hidden rounded-2xl cursor-pointer group"
               onClick={() => setSelectedCategory('sea')}
             >
-              <div className="relative h-80 bg-gradient-to-br from-blue-600 to-teal-600">
+              <div className="relative h-80 bg-primary-700">
                 <img 
                   src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
                   alt="Sea & Beach Wears and Handy Crafts"
@@ -346,13 +339,13 @@ const Shop = () => {
               className="relative overflow-hidden rounded-2xl cursor-pointer group"
               onClick={() => setSelectedCategory('tea')}
             >
-              <div className="relative h-80 bg-gradient-to-br from-green-600 to-green-800">
+              <div className="relative h-80 bg-primary-700">
                 <img 
                   src="https://images.unsplash.com/photo-1571934811356-5cc061b6821f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85"
                   alt="Premium Tea - Ceylon tea from Sri Lankan highlands"
                   className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/50 transition-all duration-300"></div>
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-all duration-300"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-white">
                     <h3 className="text-3xl font-bold mb-2">Premium Tea</h3>
@@ -380,10 +373,10 @@ const Shop = () => {
                   placeholder="Search products..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
-              <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700">
+              <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700">
                 Search
               </button>
             </div>
@@ -396,7 +389,7 @@ const Shop = () => {
                   onClick={() => { setSelectedCategory(category.id); setPage(0); }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
                     selectedCategory === category.id
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-primary-600 text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -422,7 +415,7 @@ const Shop = () => {
           
           {loading ? (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading products...</p>
             </div>
           ) : (
@@ -436,7 +429,7 @@ const Shop = () => {
                       className="w-full h-48 object-cover"
                     />
                     {product.badge && (
-                      <div className="absolute top-4 left-4 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      <div className="absolute top-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                         {product.badge}
                       </div>
                     )}
@@ -467,15 +460,7 @@ const Shop = () => {
                         </span>
                       </div>
                       {product.productType && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          product.productType === 'Tea Packet' 
-                            ? 'bg-green-100 text-green-700'
-                            : product.productType === 'Beach Ware'
-                            ? 'bg-blue-100 text-blue-700'
-                            : product.productType === 'Sea Craft'
-                            ? 'bg-teal-100 text-teal-700'
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
                           {product.productType}
                         </span>
                       )}
@@ -510,7 +495,7 @@ const Shop = () => {
                         onClick={() => addToCart(product)}
                         className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
                           product.inStock
-                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            ? 'bg-primary-600 text-white hover:bg-primary-700'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                         disabled={!product.inStock}
@@ -572,7 +557,7 @@ const Shop = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+      <section className="py-20 bg-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Experience Sri Lanka?
@@ -586,7 +571,7 @@ const Shop = () => {
               Browse Tours
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
+              <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
               Contact Us
             </Link>
           </div>
@@ -682,7 +667,7 @@ const Shop = () => {
                     <span>${getCartTotal().toFixed(2)}</span>
                   </div>
                   <div className="space-y-3">
-                    <button className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-200">
+                    <button className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200">
                       Proceed to Checkout
                     </button>
                     <button

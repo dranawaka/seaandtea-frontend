@@ -10,7 +10,7 @@
   
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    @apply bg-gradient-to-br from-gray-50 via-white to-primary-50/30;
+    @apply bg-gray-50 text-gray-900;
   }
   
   html {
@@ -20,31 +20,31 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out;
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-card hover:shadow-card-hover transition-all duration-200 ease-out;
   }
   
   .btn-secondary {
-    @apply bg-gradient-to-r from-secondary-500 to-secondary-600 hover:from-secondary-600 hover:to-secondary-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-out;
+    @apply bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-card hover:shadow-card-hover transition-all duration-200 ease-out;
   }
   
   .btn-outline {
-    @apply border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-semibold py-2.5 px-6 rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ease-out bg-white;
+    @apply border border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 ease-out bg-transparent;
   }
   
   .card {
-    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100/50;
+    @apply bg-white rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-200 border border-gray-200;
   }
   
   .card-modern {
-    @apply bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-500 border border-white/50;
+    @apply bg-white rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-200 border border-gray-200;
   }
   
   .glass {
-    @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl;
+    @apply bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 bg-white/50 backdrop-blur-sm;
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-white text-gray-900;
   }
   
   .line-clamp-3 {
@@ -55,7 +55,7 @@
   }
   
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent;
+    @apply text-primary-800 font-bold;
   }
   
   .section-padding {

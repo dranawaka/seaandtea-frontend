@@ -139,15 +139,14 @@ const Seas = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-teal-600 text-white">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+      <section className="relative bg-primary-800 text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                             Sri Lankan
-               <span className="text-blue-300"> Seas Paradise</span>
+              Sri Lankan
+              <span className="text-primary-200"> Seas Paradise</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-primary-200">
               Discover pristine beaches, world-class surfing, whale watching, and vibrant coral reefs 
               along Sri Lanka's stunning 1,600km coastline.
             </p>
@@ -155,7 +154,7 @@ const Seas = () => {
               <Link to="/guides" className="btn-secondary text-lg px-8 py-3">
                 Find Sea Guides
               </Link>
-              <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-blue-600">
+              <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
                 Browse All Tours
               </Link>
             </div>
@@ -211,14 +210,14 @@ const Seas = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {region.name}
                 </h3>
-                <div className="text-blue-600 font-medium mb-4">
+                <div className="text-primary-600 font-medium mb-4">
                   Best Season: {region.season}
                 </div>
                 <div className="mb-4">
                   <div className="text-sm text-gray-600 mb-2">Popular Beaches:</div>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {region.beaches.map((beach, i) => (
-                      <span key={i} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                      <span key={i} className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs">
                         {beach}
                       </span>
                     ))}
@@ -254,10 +253,10 @@ const Seas = () => {
                     alt={experience.title}
                     className="w-full h-48 object-cover"
                   />
-                  <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-blue-600">
+                  <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-primary-600">
                     {experience.rating} ★
                   </div>
-                  <div className="absolute bottom-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute bottom-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     ${experience.price}
                   </div>
                 </div>
@@ -289,7 +288,7 @@ const Seas = () => {
                     <div className="text-sm text-gray-600 mb-2">Highlights:</div>
                     <div className="flex flex-wrap gap-2">
                       {experience.highlights.map((highlight, index) => (
-                        <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                        <span key={index} className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs">
                           {highlight}
                         </span>
                       ))}
@@ -324,7 +323,7 @@ const Seas = () => {
           
           {loading ? (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading beach guides...</p>
             </div>
           ) : (
@@ -337,11 +336,11 @@ const Seas = () => {
                       alt={guide.name}
                       className="w-full h-48 object-cover"
                     />
-                    <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-blue-600">
+                    <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-primary-600">
                       {guide.rating} ★
                     </div>
                     {guide.verified && (
-                      <div className="absolute top-4 left-4 bg-green-600 text-white p-2 rounded-full">
+                      <div className="absolute top-4 left-4 bg-primary-600 text-white p-2 rounded-full">
                         <Shield className="h-4 w-4" />
                       </div>
                     )}
@@ -403,22 +402,22 @@ const Seas = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-teal-600 text-white">
+      <section className="py-20 bg-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                           Ready for Your Sea Adventure?
+            Ready for Your Sea Adventure?
           </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+          <p className="text-xl mb-8 max-w-2xl mx-auto text-primary-200">
             Book your perfect Sri Lankan beach experience today and discover why our coastline 
             is considered among the world's most beautiful.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/guides" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
-                             Find Sea Guides
+              Find Sea Guides
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-blue-600">
-                             Custom Sea Tour
+            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
+              Custom Sea Tour
             </Link>
           </div>
         </div>

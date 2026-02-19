@@ -82,15 +82,14 @@ const Tea = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-green-600 to-green-800 text-white">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+      <section className="relative bg-primary-800 text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Sri Lankan
-              <span className="text-green-300"> Tea Adventures</span>
+              <span className="text-primary-200"> Tea Adventures</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-primary-200">
               Experience the world's finest Ceylon tea with guided plantation tours, 
               tastings, and authentic tea-making experiences in the misty highlands.
             </p>
@@ -98,7 +97,7 @@ const Tea = () => {
               <Link to="/guides" className="btn-secondary text-lg px-8 py-3">
                 Find Tea Guides
               </Link>
-              <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-green-600">
+              <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
                 Browse All Tours
               </Link>
             </div>
@@ -157,10 +156,10 @@ const Tea = () => {
                     alt={experience.title}
                     className="w-full h-48 object-cover"
                   />
-                  <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-green-600">
+                  <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-primary-600">
                     {experience.rating} ★
                   </div>
-                  <div className="absolute bottom-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute bottom-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                     ${experience.price}
                   </div>
                 </div>
@@ -192,7 +191,7 @@ const Tea = () => {
                     <div className="text-sm text-gray-600 mb-2">Highlights:</div>
                     <div className="flex flex-wrap gap-2">
                       {experience.highlights.map((highlight, index) => (
-                        <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+                        <span key={index} className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs">
                           {highlight}
                         </span>
                       ))}
@@ -227,7 +226,7 @@ const Tea = () => {
           
           {loading ? (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading tea guides...</p>
             </div>
           ) : (
@@ -240,7 +239,7 @@ const Tea = () => {
                       alt={guide.name}
                       className="w-full h-48 object-cover"
                     />
-                    <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-green-600">
+                    <div className="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium text-primary-600">
                       {guide.rating} ★
                     </div>
                   </div>
@@ -301,12 +300,12 @@ const Tea = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 to-green-800 text-white">
+      <section className="py-20 bg-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Taste Ceylon's Finest?
           </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+          <p className="text-xl mb-8 max-w-2xl mx-auto text-primary-200">
             Book your authentic Sri Lankan tea experience today and discover why Ceylon tea 
             is treasured worldwide.
           </p>
@@ -315,7 +314,7 @@ const Tea = () => {
               Find Tea Guides
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-green-600">
+            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
               Custom Tea Tour
             </Link>
           </div>

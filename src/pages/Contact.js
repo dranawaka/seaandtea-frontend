@@ -82,7 +82,7 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
+      <section className="bg-primary-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             Get in Touch
@@ -105,9 +105,9 @@ const Contact = () => {
               </h2>
               
               {isSubmitted && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                  <span className="text-green-800">Thank you! Your message has been sent successfully.</span>
+                <div className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-lg flex items-center">
+                  <CheckCircle className="h-5 w-5 text-primary-600 mr-2" />
+                  <span className="text-primary-800">Thank you! Your message has been sent successfully.</span>
                 </div>
               )}
 
