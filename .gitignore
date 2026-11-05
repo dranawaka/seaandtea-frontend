@@ -8,6 +8,9 @@ yarn-error.log*
 build/
 dist/
 
+# Vercel local link
+.vercel
+
 # Environment variables
 .env
 .env.local
@@ -83,3 +86,4 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+.env*

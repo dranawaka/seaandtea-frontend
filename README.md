@@ -59,24 +59,26 @@ npm run build
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── Navbar.js       # Navigation component
-│   └── Footer.js       # Footer component
-├── pages/              # Page components
-│   ├── Home.js         # Homepage
-│   ├── Guides.js       # Guides listing page
-│   ├── Tours.js        # Tours listing page
-│   ├── GuideProfile.js # Individual guide profile
-│   ├── TourDetail.js   # Individual tour details
-│   ├── About.js        # About page
-│   ├── Contact.js      # Contact page
-│   ├── Login.js        # Login form
-│   └── Register.js     # Registration form
-├── data/               # Mock data and API functions
-│   └── mockData.js     # All mock data and helper functions
-├── App.js              # Main app component with routing
-├── index.js            # Entry point
-└── index.css           # Global styles and Tailwind imports
+├── app/                # Router and app shell
+├── shared/             # API client, auth, and reusable UI
+│   ├── components/
+│   ├── config/
+│   ├── context/
+│   ├── data/
+│   └── utils/
+├── modules/            # Feature modules
+│   ├── admin/
+│   ├── auth/
+│   ├── guides/
+│   ├── home/
+│   ├── messages/
+│   ├── news/
+│   ├── profile/
+│   ├── seo/
+│   ├── shop/
+│   └── tours/
+├── index.js
+└── index.css
 ```
 
 ## 📊 Mock Data Structure
