@@ -3,8 +3,11 @@ export const USD_TO_LKR = 300;
 
 const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
 
+/** Galle Face promenade and the Colombo skyline. Sigiriya's rock photo was reused here by mistake. */
+const COLOMBO_IMAGE = 'https://images.pexels.com/photos/20711999/pexels-photo-20711999.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=900&q=80';
+
 export const DESTINATIONS = [
-  { slug: 'colombo', name: 'Colombo', image: photo('photo-1588598198321-9735fd52455b') },
+  { slug: 'colombo', name: 'Colombo', image: COLOMBO_IMAGE },
   { slug: 'kandy', name: 'Kandy', image: photo('photo-1546708973-b339540b5162') },
   { slug: 'sigiriya', name: 'Sigiriya', image: photo('photo-1588598198321-9735fd52455b') },
   { slug: 'ella', name: 'Ella', image: photo('photo-1566296314736-6eaac1ca0cb9') },
@@ -19,7 +22,7 @@ export const DESTINATIONS = [
 ];
 
 export const REGIONS = [
-  { slug: 'colombo', name: 'Colombo', image: photo('photo-1588598198321-9735fd52455b'), destinations: ['Colombo'] },
+  { slug: 'colombo', name: 'Colombo', image: COLOMBO_IMAGE, destinations: ['Colombo'] },
   { slug: 'kandy', name: 'Kandy', image: photo('photo-1546708973-b339540b5162'), destinations: ['Kandy'] },
   { slug: 'ella-tea-country', name: 'Ella & Tea Country', image: photo('photo-1566296314736-6eaac1ca0cb9'), destinations: ['Ella', 'Nuwara Eliya'] },
   { slug: 'galle-south-coast', name: 'Galle & South Coast', image: photo('photo-1544551763-46a013bb70d5'), destinations: ['Galle', 'Mirissa', 'Bentota'] },
