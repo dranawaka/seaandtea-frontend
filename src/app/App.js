@@ -6,7 +6,7 @@ import Navbar from '../shared/components/Navbar';
 import Footer from '../shared/components/Footer';
 import { Home, About, Contact } from '../modules/home';
 import { Guides, GuideProfileViewer } from '../modules/guides';
-import { Tours, GuideTours, CreateTour, TourDetail } from '../modules/tours';
+import { Tours, GuideTours, CreateTour, TourDetail, Destination, Wishlist, Checkout } from '../modules/tours';
 import { Shop } from '../modules/shop';
 import { UserProfile } from '../modules/profile';
 import { Login, Register } from '../modules/auth';
@@ -36,6 +36,9 @@ function App() {
               <Route path="/create-tour" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
               <Route path="/edit-tour/:id" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
               <Route path="/tour/:id" element={FEATURE_TOURS_ENABLED ? <TourDetail /> : <Navigate to="/" replace />} />
+              <Route path="/destinations/:slug" element={FEATURE_TOURS_ENABLED ? <Destination /> : <Navigate to="/" replace />} />
+              <Route path="/wishlist" element={FEATURE_TOURS_ENABLED ? <Wishlist /> : <Navigate to="/" replace />} />
+              <Route path="/checkout/:bookingId" element={FEATURE_TOURS_ENABLED ? <Checkout /> : <Navigate to="/" replace />} />
               <Route path="/guide/:id" element={<GuideProfileViewer />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />

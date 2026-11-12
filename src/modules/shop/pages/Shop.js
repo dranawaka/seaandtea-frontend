@@ -245,12 +245,12 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-primary-800 text-white">
+      <section className="relative brand-hero text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Sri Lankan
-              <span className="text-primary-200"> Shop</span>
+              <span className="text-secondary-300"> Shop</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               Discover authentic Sri Lankan products, from premium Ceylon tea to handcrafted souvenirs, 
@@ -262,7 +262,7 @@ const Shop = () => {
                   Book Experiences
                 </Link>
               )}
-              <Link to="/guides" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-purple-600">
+              <Link to="/guides" className="inline-flex items-center justify-center rounded-full border-2 border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-all duration-200">
                 Find Local Guides
               </Link>
             </div>
@@ -560,7 +560,7 @@ const Shop = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary-800 text-white">
+      <section className="py-20 brand-hero text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Experience Sri Lanka?
@@ -576,7 +576,7 @@ const Shop = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             )}
-            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
+            <Link to="/contact" className="inline-flex items-center justify-center rounded-full border-2 border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-all duration-200">
               Contact Us
             </Link>
           </div>

@@ -37,6 +37,13 @@ export const PLACEHOLDER_IMAGES = {
   DEFAULT: createPlaceholderImage(300, 200, 'Image', '#f3f4f6', '#6b7280')
 };
 
+/** The sample catalog used a photo of the Taj Mahal for Sigiriya. Show the rock fortress instead. */
+export const preferSriLankanPhoto = (url) => (
+  typeof url === 'string' && url.includes('photo-1548013146')
+    ? '/images/slider/sigiriya.jpg'
+    : url
+);
+
 /** Default tour card image when API provides no image (e.g. list endpoint omits images). */
 export const DEFAULT_TOUR_CARD_IMAGE = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
 

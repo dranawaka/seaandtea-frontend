@@ -1,346 +1,221 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Star, Users, Calendar, ArrowRight, Globe, Shield, Heart, Clock, Mountain, Waves, TreePine, Building, Newspaper, MessageCircle, ThumbsUp } from 'lucide-react';
-import { mockDestinations } from '../../../shared/data/mockData';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Shield, CalendarCheck, Star, Languages, ArrowRight, Newspaper,
+  Leaf, Waves, Bird, Landmark, UtensilsCrossed, Train, Mountain, Users, Smartphone, MapPin
+} from 'lucide-react';
+import SearchBar from '../../../shared/components/SearchBar';
+import ActivityCard from '../../../shared/components/ActivityCard';
 import ImageSlider from '../../../shared/components/ImageSlider';
-import { listPublishedNewsApi } from '../../../shared/config/api';
-import { FEATURE_TOURS_ENABLED } from '../../../shared/config/features';
+import { REGIONS, TOUR_CATEGORIES } from '../../../shared/data/destinations';
+import { searchTours, listPublishedNewsApi, getWishlist, addWishlist, removeWishlist } from '../../../shared/config/api';
+import { useAuth } from '../../../shared/context/AuthContext';
+
+const CATEGORY_ICONS = {
+  TEA_TOURS: Leaf,
+  BEACH_TOURS: Waves,
+  WILDLIFE_TOURS: Bird,
+  CULTURAL_TOURS: Landmark,
+  FOOD_TOURS: UtensilsCrossed,
+  SCENIC_TOURS: Train,
+  ADVENTURE_TOURS: Mountain,
+  FAMILY_TOURS: Users,
+};
 
 const Home = () => {
+  const navigate = useNavigate();
+  const { token, isAuthenticated } = useAuth();
+  const [popular, setPopular] = useState([]);
+  const [originals, setOriginals] = useState([]);
+  const [saved, setSaved] = useState(new Set());
   const [articles, setArticles] = useState([]);
-  const [articlesLoading, setArticlesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    listPublishedNewsApi({ page: 0, size: 6 })
-      .then((data) => {
-        if (!cancelled) setArticles(data.content ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setArticles([]);
-      })
-      .finally(() => {
-        if (!cancelled) setArticlesLoading(false);
-      });
+    searchTours({ sortBy: 'bookings', sortDirection: 'desc', page: 0, size: 8 })
+      .then((data) => { if (!cancelled) setPopular(data.content || []); })
+      .catch(() => { if (!cancelled) setPopular([]); });
+    searchTours({ sortBy: 'rating', sortDirection: 'desc', page: 0, size: 8 })
+      .then((data) => { if (!cancelled) setOriginals(data.content || []); })
+      .catch(() => { if (!cancelled) setOriginals([]); });
+    listPublishedNewsApi({ page: 0, size: 3 })
+      .then((data) => { if (!cancelled) setArticles(data.content ?? []); })
+      .catch(() => { if (!cancelled) setArticles([]); });
     return () => { cancelled = true; };
   }, []);
-  const features = [
-    {
-      icon: <Clock className="h-8 w-8 text-primary-600" />,
-      title: 'Compact Diversity',
-      description: 'Experience beaches, mountains, culture & wildlife within 2-3 hours - Sri Lanka\'s unique advantage.'
-    },
-    {
-      icon: <Shield className="h-8 w-8 text-primary-600" />,
-      title: 'Verified Local Guides',
-      description: 'Connect with Sri Lanka\'s thriving freelance guide community - unified and verified for your safety.'
-    },
-    {
-      icon: <Globe className="h-8 w-8 text-primary-600" />,
-      title: 'The Upwork Model',
-      description: 'Browse profiles, compare prices, and book directly with independent guides - just like Upwork.'
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      setSaved(new Set());
+      return;
     }
-  ];
+    getWishlist(token)
+      .then((items) => setSaved(new Set((items || []).map((item) => item.id))))
+      .catch(() => setSaved(new Set()));
+  }, [isAuthenticated, token]);
+
+  const toggleSave = async (tourId) => {
+    if (!token) {
+      sessionStorage.setItem('postLoginPath', '/');
+      navigate('/login');
+      return;
+    }
+    const next = new Set(saved);
+    try {
+      if (next.has(tourId)) {
+        await removeWishlist(tourId, token);
+        next.delete(tourId);
+      } else {
+        await addWishlist(tourId, token);
+        next.add(tourId);
+      }
+      setSaved(next);
+    } catch {
+      // Keep the previous heart state when the save request fails.
+    }
+  };
+
+  const row = (title, subtitle, tours) => (
+    <section className="py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between mb-5 gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-ink">{title}</h2>
+            {subtitle && <p className="text-ink/70 mt-1">{subtitle}</p>}
+          </div>
+          <Link to="/tours" className="text-sm font-bold text-primary-700 hover:text-primary-900 shrink-0">See all</Link>
+        </div>
+        {tours.length === 0 ? (
+          <p className="text-ink/60">Tours will show up here once guides publish them.</p>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
+            {tours.map((tour) => (
+              <div key={tour.id} className="snap-start w-72 shrink-0">
+                <ActivityCard tour={tour} saved={saved.has(tour.id)} onToggleSave={toggleSave} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section with Image Slider */}
-      <section className="relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <ImageSlider />
+    <div>
+      <ImageSlider variant="hero">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-20 py-16 md:py-24 w-full">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-primary-100 mb-3">Sri Lanka</p>
+          <h1 className="text-4xl md:text-6xl font-extrabold max-w-3xl mb-4 leading-tight">Discover Sri Lanka through sea, tea, and local experiences.</h1>
+          <p className="text-lg text-primary-100 max-w-2xl mb-8">Tea country, beaches, wildlife, temples, and train rides, booked with local operators.</p>
+          <SearchBar showDate variant="hero" className="max-w-3xl" />
         </div>
-        
-        {/* Additional Hero Content */}
-        <div className="relative bg-primary-800 text-white py-20 overflow-hidden">
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 animate-slide-up">
-              The Upwork for
-              <span className="block text-primary-100 mt-1"> Travel Guides</span>
-              <span className="text-2xl md:text-4xl lg:text-5xl font-semibold block mt-2 text-primary-200">in Sri Lanka</span>
-            </h1>
-            <p className="text-lg md:text-xl lg:text-2xl mb-10 max-w-3xl mx-auto text-primary-200 leading-relaxed animate-fade-in">
-              To connect travelers with verified local guides for authentic, flexible, and personalized Sri Lankan experiences.
-            </p>
+      </ImageSlider>
 
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="section-padding bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
-              Why Choose Sea & Tea?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              We unify Sri Lanka's fragmented freelance guide community, creating the ultimate platform 
-              for travelers to connect with local experts.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
-            {features.map((feature, index) => (
-              <div key={index} className="card-modern p-8 text-center group">
-                <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-primary-50 rounded-xl group-hover:scale-105 transition-transform duration-200">
-                    {feature.icon}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Sri Lanka Advantage Section */}
-      <section className="section-padding bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
-              The Sri Lanka Edge
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              What makes Sri Lanka the perfect destination for guided travel experiences
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            <div className="card-modern p-6 text-center group">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
-                  <Waves className="h-10 w-10 text-primary-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Pristine Beaches</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">From Mirissa to Arugam Bay, discover untouched coastal paradises</p>
-            </div>
-            
-            <div className="card-modern p-6 text-center group">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
-                  <Mountain className="h-10 w-10 text-primary-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Misty Mountains</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">Ella, Nuwara Eliya & tea plantations in the central highlands</p>
-            </div>
-            
-            <div className="card-modern p-6 text-center group">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
-                  <Building className="h-10 w-10 text-primary-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Ancient Culture</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">Temples, ruins & UNESCO sites spanning 2000+ years of history</p>
-            </div>
-            
-            <div className="card-modern p-6 text-center group">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary-100 rounded-xl group-hover:scale-105 transition-transform duration-200">
-                  <TreePine className="h-10 w-10 text-primary-600" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Wildlife Safaris</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">Elephants, leopards & exotic birds in national parks</p>
-            </div>
-          </div>
-          
-          <div className="mt-16 text-center">
-            <div className="card-modern p-10 max-w-4xl mx-auto bg-primary-50/50">
-              <h3 className="text-3xl font-extrabold text-gray-900 mb-4 gradient-text">
-                All Within 2-3 Hours Travel
-              </h3>
-              <p className="text-lg text-gray-700 mb-8 leading-relaxed">
-                Sri Lanka's compact size means you can experience diverse landscapes and cultures in a single trip. 
-                Start your morning on a mountain trail and end your day watching the sunset on a pristine beach.
-              </p>
-              {FEATURE_TOURS_ENABLED && (
-                <Link to="/tours" className="btn-primary text-lg px-10 py-4 inline-flex items-center">
-                  Explore Sri Lanka Tours
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Destinations */}
-      <section className="section-padding bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
-              Sri Lanka's Compact Diversity
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Experience the magic of Sri Lanka - from pristine beaches to misty mountains, 
-              ancient temples to wildlife safaris - all within easy reach.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
-            {mockDestinations.map((destination) => (
-              <div key={destination.id} className="card-modern overflow-hidden group">
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={destination.image} 
-                    alt={destination.name}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 right-4 glass rounded-full px-4 py-2 text-sm font-bold text-gray-900 shadow-lg">
-                    {destination.price}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
-                    {destination.name}
-                  </h3>
-                  <div className="flex items-center text-gray-600 mb-4">
-                    <MapPin className="h-4 w-4 mr-2 text-primary-600" />
-                    <span className="text-sm font-medium">{destination.location}</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-secondary-500 mr-1 fill-current" />
-                      <span className="text-sm text-gray-600 font-medium">
-                        {destination.rating} ({destination.reviews} reviews)
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-1 text-primary-600" />
-                      <span className="font-medium">{destination.duration}</span>
-                    </div>
-                  </div>
-                  {FEATURE_TOURS_ENABLED ? (
-                    <Link 
-                      to={`/tour/${destination.id}`}
-                      className="btn-primary w-full flex items-center justify-center"
-                    >
-                      View Details
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  ) : (
-                    <span className="btn-primary w-full flex items-center justify-center opacity-90 cursor-default">
-                      Coming soon
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {FEATURE_TOURS_ENABLED && (
-            <div className="text-center mt-16">
-              <Link to="/tours" className="btn-outline text-lg px-10 py-4 inline-flex items-center">
-                View All Tours
-                <ArrowRight className="h-5 w-5 ml-2" />
+      <section className="bg-white border-b border-primary-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex gap-2 overflow-x-auto">
+          {TOUR_CATEGORIES.map((category) => {
+            const Icon = CATEGORY_ICONS[category.value] || Leaf;
+            return (
+              <Link
+                key={category.value}
+                to={`/tours?category=${category.value}`}
+                className="shrink-0 inline-flex items-center gap-2 rounded-full border border-primary-100 bg-sand px-4 py-2 text-sm font-bold text-ink hover:border-primary-600 hover:text-primary-800"
+              >
+                <Icon className="h-4 w-4 text-primary-600" />
+                {category.label}
               </Link>
-            </div>
-          )}
+            );
+          })}
         </div>
       </section>
 
-      {/* Latest News & Articles */}
-      <section className="section-padding bg-white">
+      <section className="py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 gradient-text">
-              Latest News & Articles
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Updates, travel tips, and stories from Sea & Tea and our community.
-            </p>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-ink mb-5">Popular regions</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {REGIONS.map((place) => (
+              <Link key={place.slug} to={`/destinations/${place.slug}`} className="relative h-40 sm:h-52 rounded-2xl overflow-hidden group">
+                <img src={place.image} alt={place.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent" />
+                <span className="absolute bottom-3 left-3 right-3 text-white font-bold">{place.name}</span>
+              </Link>
+            ))}
           </div>
+        </div>
+      </section>
 
-          {articlesLoading ? (
-            <div className="flex justify-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+      {row('Popular experiences', 'What travelers book most', popular)}
+      {row('Sea and Tea Originals', 'Curated picks from highly rated local operators', originals)}
+
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-ink mb-5">Book with confidence</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: MapPin, title: 'Local operators', text: 'Tours are run by Sri Lankan guides and companies, not overseas resellers.' },
+              { icon: CalendarCheck, title: 'Free cancellation', text: 'Cancel a paid booking more than 48 hours before departure.' },
+              { icon: Star, title: 'Verified reviews', text: 'Ratings come from travelers who booked on Sea and Tea.' },
+              { icon: Languages, title: 'English, Sinhala, Tamil', text: 'Support and many tours are offered in the languages of the island.' }
+            ].map((item) => (
+              <div key={item.title} className="card-modern p-5">
+                <item.icon className="h-6 w-6 text-primary-600 mb-3" />
+                <h3 className="font-bold text-ink">{item.title}</h3>
+                <p className="text-sm text-ink/70 mt-1">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-4">
+          <div className="card-modern p-8">
+            <h2 className="text-2xl font-extrabold text-ink">Why book on Sea and Tea</h2>
+            <ul className="mt-4 space-y-3 text-ink/80">
+              <li className="flex gap-3"><Shield className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Prices are shown in LKR, with the USD amount beside them.</li>
+              <li className="flex gap-3"><MapPin className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Many experiences start at a hotel, station, or clear meeting point.</li>
+              <li className="flex gap-3"><CalendarCheck className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Cancellation windows give room when the weather turns.</li>
+            </ul>
+          </div>
+          <div className="brand-hero text-white rounded-2xl p-8">
+            <Smartphone className="h-7 w-7 mb-3" />
+            <h2 className="text-2xl font-extrabold">Book from your phone</h2>
+            <p className="text-primary-100 mt-2">Most travelers in Sri Lanka book on a phone. Open Sea and Tea in your browser and add it to your home screen so tickets stay a tap away.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="card-modern p-8 md:flex md:items-center md:justify-between gap-6">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-primary-700">The shop</p>
+              <h2 className="text-2xl font-extrabold text-ink mt-1">Ceylon tea, from the same island</h2>
+              <p className="text-ink/70 mt-2">Guides for the trip. Tea for home.</p>
             </div>
-          ) : articles.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              No articles yet. Check back soon for news and travel stories.
-            </div>
+            <Link to="/shop" className="btn-primary mt-4 md:mt-0 inline-flex items-center">
+              Shop tea <ArrowRight className="h-4 w-4 ml-2" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-10 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-extrabold text-ink mb-5">From the island</h2>
+          {articles.length === 0 ? (
+            <p className="text-ink/60">No articles yet.</p>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+            <div className="grid md:grid-cols-3 gap-4">
               {articles.map((post) => (
-                <article key={post.id} className="card-modern overflow-hidden group flex flex-col">
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex items-center text-primary-600 mb-3">
-                      <Newspaper className="h-5 w-5 mr-2" />
-                      <span className="text-sm font-medium">
-                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'News'}
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed flex-1 line-clamp-3 mb-4">
-                      {post.bodySummary || 'Read more...'}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 mt-auto pt-4 border-t border-gray-100">
-                      <span>{post.authorDisplayName || 'Sea & Tea'}</span>
-                      <div className="flex items-center gap-3">
-                        {(post.likeCount ?? 0) > 0 && (
-                          <span className="flex items-center gap-1">
-                            <ThumbsUp className="h-3.5 w-3.5" /> {post.likeCount}
-                          </span>
-                        )}
-                        {(post.commentCount ?? 0) > 0 && (
-                          <span className="flex items-center gap-1">
-                            <MessageCircle className="h-3.5 w-3.5" /> {post.commentCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    to={`/news/${post.id}`}
-                    className="block px-6 py-4 bg-gray-50 group-hover:bg-primary-50 text-primary-600 font-medium text-sm transition-colors flex items-center"
-                  >
-                    Read article
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </article>
+                <Link key={post.id} to={`/news/${post.id}`} className="card-modern p-5 block hover:border-primary-300">
+                  <Newspaper className="h-5 w-5 text-primary-700 mb-3" />
+                  <h3 className="font-bold text-ink line-clamp-2">{post.title}</h3>
+                  <p className="text-sm text-ink/70 mt-2 line-clamp-3">{post.bodySummary || 'Read more'}</p>
+                </Link>
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative section-padding bg-primary-800 text-white overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/30 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary-400/30 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6">
-            Ready to Explore Sri Lanka?
-          </h2>
-          <p className="text-xl md:text-2xl mb-12 max-w-2xl mx-auto text-gray-100 leading-relaxed">
-            Join the growing community of travelers discovering Sri Lanka through our verified local guides.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link to="/register" className="btn-secondary text-lg px-10 py-4 inline-flex items-center justify-center">
-              Get Started Today
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Link>
-            <Link to="/contact" className="border-2 border-white/80 text-white hover:bg-white hover:text-primary-600 font-semibold py-4 px-10 rounded-xl transition-all duration-300 text-lg inline-flex items-center justify-center backdrop-blur-sm hover:shadow-xl transform hover:-translate-y-0.5">
-              Contact Us
-            </Link>
-          </div>
         </div>
       </section>
     </div>
@@ -348,4 +223,3 @@ const Home = () => {
 };
 
 export default Home;
-

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, Globe, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag } from 'lucide-react';
+import { Link, NavLink } from 'react-router-dom';
+import { Menu, X, Waves, Leaf, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
+import SearchBar from './SearchBar';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
 import { FEATURE_TOURS_ENABLED } from '../config/features';
@@ -23,12 +24,9 @@ const Navbar = () => {
   }, [isAuthenticated, token]);
 
   const navigation = [
-    { name: 'Home', href: '/' },
+    ...(FEATURE_TOURS_ENABLED ? [{ name: 'Explore', href: '/tours' }] : [{ name: 'Home', href: '/' }]),
     { name: 'Guides', href: '/guides' },
-    ...(FEATURE_TOURS_ENABLED ? [{ name: 'Tours', href: '/tours' }] : []),
     { name: 'Shop', href: '/shop' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
   ];
 
   // Close profile dropdown when clicking outside
@@ -52,35 +50,64 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="glass sticky top-0 z-50 border-b border-white/20 backdrop-blur-xl bg-white/70">
+    <nav className="sticky top-0 z-50 border-b border-primary-100/80 bg-sand/90 backdrop-blur-xl shadow-[0_10px_30px_-22px_rgba(10,110,110,0.45)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center group">
-            <Globe className="h-8 w-8 text-primary-600 group-hover:text-primary-700 transition-colors duration-200" />
-            <span className="ml-3 text-xl font-bold text-primary-800">Sea & Tea</span>
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-600 shadow-md shadow-primary-700/30">
+              <Waves className="h-5 w-5 text-white" />
+              <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary-500 ring-2 ring-sand">
+                <Leaf className="h-3 w-3 text-white" />
+              </span>
+            </span>
+            <span className="ml-3 font-display text-xl sm:text-2xl font-extrabold tracking-tight text-ink">
+              Sea and Tea
+            </span>
           </Link>
+
+          {FEATURE_TOURS_ENABLED && (
+            <div className="hidden lg:block flex-1 max-w-xl mx-6">
+              <SearchBar />
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
+            <div className="ml-4 flex items-center space-x-1">
               {navigation.map((item) => (
-                <Link
+                <NavLink
                   key={item.name}
                   to={item.href}
-                  className="text-gray-700 hover:text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 hover:bg-gray-100"
+                  end={item.href === '/'}
+                  className={({ isActive }) =>
+                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary-800 text-white shadow-md shadow-primary-900/20'
+                        : 'text-stone-700 hover:text-primary-800 hover:bg-primary-50'
+                    }`
+                  }
                 >
                   {item.name}
-                </Link>
+                </NavLink>
               ))}
             </div>
           </div>
 
           {/* Auth Buttons + Cart */}
           <div className="hidden md:flex items-center space-x-4">
+            {FEATURE_TOURS_ENABLED && (
+              <Link
+                to="/wishlist"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-all duration-200"
+                aria-label="Wishlist"
+              >
+                <Heart className="h-5 w-5" strokeWidth={2} />
+              </Link>
+            )}
             <Link
               to="/shop?openCart=1"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200/80 hover:bg-gray-300 text-gray-700 hover:text-primary-600 transition-all duration-200"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-all duration-200"
               aria-label="Shopping cart"
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
@@ -244,7 +271,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center space-x-3">
             <Link
               to="/shop?openCart=1"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200/80 text-gray-700"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-800"
               aria-label="Shopping cart"
               onClick={() => setIsOpen(false)}
             >
@@ -260,6 +287,12 @@ const Navbar = () => {
         </div>
       </div>
 
+      {FEATURE_TOURS_ENABLED && (
+        <div className="lg:hidden px-4 pb-3">
+          <SearchBar onSubmit={() => setIsOpen(false)} />
+        </div>
+      )}
+
       {/* Mobile Navigation */}
       {isOpen && (
         <div className="md:hidden animate-fade-in">
@@ -274,6 +307,15 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            {FEATURE_TOURS_ENABLED && (
+              <Link
+                to="/wishlist"
+                className="text-gray-700 hover:text-primary-600 block px-4 py-3 rounded-xl text-base font-semibold"
+                onClick={() => setIsOpen(false)}
+              >
+                Wishlist
+              </Link>
+            )}
             <div className="pt-4 space-y-2">
               {isAuthenticated ? (
                 <>

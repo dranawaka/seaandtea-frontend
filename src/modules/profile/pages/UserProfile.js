@@ -4,10 +4,11 @@ import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Star, User
 import { buildApiUrl, API_CONFIG, logApiCall } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
 import ProfilePictureUpload from '../../../shared/components/ProfilePictureUpload';
+import MyTrips from '../components/MyTrips';
 
 const UserProfile = () => {
   const navigate = useNavigate();
-  const { user, token, login, isAuthenticated } = useAuth();
+  const { user, token, login, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -72,10 +73,11 @@ const UserProfile = () => {
 
   // Redirect if not authenticated
   useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   // Load guide profile from backend
   const loadGuideProfile = async () => {
@@ -558,6 +560,8 @@ const UserProfile = () => {
             <p className="text-sm">{message.text}</p>
           </div>
         )}
+
+        <MyTrips />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Information */}

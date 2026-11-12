@@ -1,20 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { getHomepageSliderApi } from '../config/api';
 
 const DEFAULT_SLIDES = [
-  { id: 1, image: '/images/slider/beach-1.png', title: 'Pristine Beaches', subtitle: 'Discover untouched coastal paradises', description: 'From Mirissa to Arugam Bay, experience Sri Lanka\'s most beautiful beaches with local guides who know every hidden gem.' },
-  { id: 2, image: '/images/slider/mountains-1.png', title: 'Misty Mountains', subtitle: 'Tea plantations & highland adventures', description: 'Explore Ella, Nuwara Eliya and the central highlands where misty mountains meet endless tea plantations.' },
-  { id: 3, image: '/images/slider/culture-1.png', title: 'Ancient Culture', subtitle: 'UNESCO sites & historic temples', description: 'Walk through 2000+ years of history at ancient temples, ruins and UNESCO World Heritage sites.' },
-  { id: 4, image: '/images/slider/wildlife-1.png', title: 'Wildlife Safaris', subtitle: 'Elephants, leopards & exotic birds', description: 'Encounter incredible wildlife in national parks where elephants roam and leopards hunt in their natural habitat.' },
-  { id: 5, image: '/images/slider/local-1.png', title: 'Local Experiences', subtitle: 'Authentic encounters with locals', description: 'Connect with Sri Lankan culture through authentic experiences guided by passionate local experts.' }
+  { id: 'sigiriya', image: '/images/slider/sigiriya.jpg', title: 'Sigiriya', subtitle: 'The rock fortress, seen from Pidurangala', description: 'Climb the Lion Rock, a UNESCO site in the Cultural Triangle.' },
+  { id: 'tea', image: '/images/slider/tea-nuwara-eliya.jpg', title: 'Nuwara Eliya tea country', subtitle: 'Ceylon tea, picked in the hills', description: 'Walk the estates above Nuwara Eliya with the people who pluck the leaf.' },
+  { id: 'beach', image: '/images/slider/beach-unawatuna.jpg', title: 'Unawatuna', subtitle: 'A south-coast beach', description: 'Swim at Unawatuna, on the coast below Galle.' },
+  { id: 'ella', image: '/images/slider/ella-nine-arch.jpg', title: 'Nine Arch Bridge', subtitle: 'The Ella railway', description: 'Watch the hill-country line cross the Nine Arch Bridge.' },
+  { id: 'elephants', image: '/images/slider/yala-elephants.jpg', title: 'Sri Lankan elephants', subtitle: 'Wild herds in the dry zone', description: 'See elephants in the parks of the south and east.' }
 ];
 
-const ImageSlider = () => {
+const isCuratedSlide = (url) =>
+  typeof url === 'string' && (url.startsWith('/images/slider/') || url.includes('cloudinary.com'));
+
+const AUTOPLAY_MS = 5000;
+
+const ImageSlider = ({ variant = 'card', children }) => {
+  const hero = variant === 'hero';
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [hovered, setHovered] = useState(false);
   const [apiSlides, setApiSlides] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const touchStart = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,107 +35,187 @@ const ImageSlider = () => {
       })
       .catch(() => {
         if (!cancelled) setApiSlides([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
   }, []);
 
   const slides = useMemo(() => {
-    if (loading || apiSlides.length === 0) return DEFAULT_SLIDES;
-    return apiSlides.map((item) => ({
-      id: item.id,
-      image: item.imageUrl || '',
-      title: item.altText || 'Slide',
-      subtitle: '',
-      description: ''
-    }));
-  }, [loading, apiSlides]);
+    const fromApi = apiSlides
+      .filter((item) => isCuratedSlide(item.imageUrl))
+      .map((item) => ({
+        id: item.id,
+        image: item.imageUrl,
+        title: item.altText || '',
+        subtitle: '',
+        description: ''
+      }));
+    return fromApi.length > 0 ? fromApi : DEFAULT_SLIDES;
+  }, [apiSlides]);
 
   useEffect(() => {
-    if (!isPlaying || slides.length === 0) return;
+    setCurrentSlide((index) => (slides.length === 0 ? 0 : index % slides.length));
+  }, [slides]);
+
+  const playing = isPlaying && !hovered && slides.length > 1;
+
+  useEffect(() => {
+    if (!playing) return undefined;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, AUTOPLAY_MS);
     return () => clearInterval(interval);
-  }, [isPlaying, slides.length]);
+  }, [playing, slides.length]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   const goToSlide = (index) => setCurrentSlide(index);
-  const togglePlayPause = () => setIsPlaying(!isPlaying);
+
+  const onTouchStart = (event) => {
+    if (event.target.closest('input, button, a, textarea, select')) return;
+    touchStart.current = event.changedTouches[0].clientX;
+  };
+
+  const onTouchEnd = (event) => {
+    if (touchStart.current == null) return;
+    const delta = event.changedTouches[0].clientX - touchStart.current;
+    touchStart.current = null;
+    if (delta > 50) prevSlide();
+    else if (delta < -50) nextSlide();
+  };
+
+  const onKeyDown = (event) => {
+    if (event.target.closest('input, textarea, select')) return;
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      prevSlide();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      nextSlide();
+    }
+  };
 
   if (slides.length === 0) return null;
 
+  const slide = slides[currentSlide] || slides[0];
+
   return (
-    <div className="image-slider-container relative w-full h-[600px] overflow-hidden rounded-2xl shadow-2xl">
-      <div className="relative w-full h-full">
-        {slides.map((slide, index) => (
+    <div
+      className={hero
+        ? 'relative w-full min-h-[560px] md:min-h-[640px] overflow-hidden text-white'
+        : 'image-slider-container relative w-full h-[560px] md:h-[640px] overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-primary-900/10'}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Featured Sri Lanka experiences"
+      tabIndex={0}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onKeyDown={onKeyDown}
+    >
+      <div className="absolute inset-0">
+        {slides.map((item, index) => (
           <div
-            key={slide.id}
-            className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-              index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+            key={item.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
+            aria-hidden={index !== currentSlide}
           >
             <img
-              src={slide.image}
-              alt={slide.title}
+              src={item.image}
+              alt={item.title || 'Sri Lanka'}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
           </div>
         ))}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-900/55 to-primary-900/20" />
+      </div>
 
-        <div className="absolute inset-0 flex items-center">
+      {children ? (
+        <div className="relative z-10 flex items-center min-h-[560px] md:min-h-[640px] pb-16">
+          {children}
+        </div>
+      ) : (
+        <div className="absolute inset-0 z-10 flex items-center">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="max-w-2xl">
-              <div className="content-transition transform transition-all duration-1000 ease-in-out">
+              <p className="inline-flex mb-4 rounded-full bg-secondary-400/95 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white">
+                Sri Lanka
+              </p>
+              {slide.title && (
                 <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight">
-                  {slides[currentSlide].title}
+                  {slide.title}
                 </h1>
-                {slides[currentSlide].subtitle && (
-                  <h2 className="text-xl md:text-2xl text-secondary-300 mb-6 font-medium">
-                    {slides[currentSlide].subtitle}
-                  </h2>
-                )}
-                {slides[currentSlide].description && (
-                  <p className="text-lg text-gray-200 mb-8 leading-relaxed">
-                    {slides[currentSlide].description}
-                  </p>
-                )}
-              </div>
+              )}
+              {slide.subtitle && (
+                <h2 className="text-xl md:text-2xl text-secondary-200 mb-6 font-medium">
+                  {slide.subtitle}
+                </h2>
+              )}
+              {slide.description && (
+                <p className="text-lg text-white/85 mb-8 leading-relaxed">
+                  {slide.description}
+                </p>
+              )}
             </div>
           </div>
         </div>
+      )}
 
-        <button
-          onClick={togglePlayPause}
-          className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-all duration-200 backdrop-blur-sm"
-          aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-        >
-          {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-        </button>
+      {slides.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={prevSlide}
+            className="hidden sm:flex absolute left-3 md:left-5 top-1/2 -translate-y-1/2 z-20 items-center justify-center bg-white/20 hover:bg-white/35 text-white p-3 rounded-full transition-colors backdrop-blur-sm"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            onClick={nextSlide}
+            className="hidden sm:flex absolute right-3 md:right-5 top-1/2 -translate-y-1/2 z-20 items-center justify-center bg-white/20 hover:bg-white/35 text-white p-3 rounded-full transition-colors backdrop-blur-sm"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
 
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`indicator-dot w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentSlide ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
+      <button
+        type="button"
+        onClick={() => setIsPlaying((value) => !value)}
+        className="absolute top-4 right-4 z-20 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-colors backdrop-blur-sm"
+        aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+      >
+        {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+      </button>
 
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20">
-          <div
-            className="h-full bg-secondary-500 transition-all duration-100 ease-linear"
-            style={{ width: isPlaying ? `${((currentSlide + 1) / slides.length) * 100}%` : '0%' }}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        {slides.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => goToSlide(index)}
+            className={`indicator-dot h-2.5 rounded-full transition-all duration-300 ${
+              index === currentSlide ? 'w-8 bg-secondary-300' : 'w-2.5 bg-white/55 hover:bg-white'
+            }`}
+            aria-label={`Go to slide ${index + 1}${item.title ? `: ${item.title}` : ''}`}
+            aria-current={index === currentSlide ? 'true' : undefined}
           />
-        </div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 z-20">
+        {playing && (
+          <div
+            key={currentSlide}
+            className="h-full bg-secondary-400"
+            style={{ animation: `progress ${AUTOPLAY_MS}ms linear forwards` }}
+          />
+        )}
       </div>
     </div>
   );

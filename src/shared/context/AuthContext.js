@@ -2,6 +2,23 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+const tokenIsUsable = (jwt) => {
+  if (!jwt || jwt.split('.').length < 2) return false;
+  try {
+    const segment = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = segment + '='.repeat((4 - (segment.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    return typeof payload.exp !== 'number' || payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+};
+
+const clearStoredSession = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('user');
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -21,15 +38,17 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('authToken');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    if (storedToken && storedUser && tokenIsUsable(storedToken)) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
-        logout();
+        clearStoredSession();
       }
+    } else if (storedToken || storedUser) {
+      clearStoredSession();
     }
     setIsLoading(false);
   }, []);

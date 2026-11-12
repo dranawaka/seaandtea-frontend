@@ -351,7 +351,7 @@ const Register = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen auth-shell flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <div className="flex justify-center mb-4">
@@ -367,7 +367,7 @@ const Register = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl rounded-xl sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-card rounded-3xl border border-primary-100 sm:px-10">
           {/* API Error Display */}
           {apiError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">

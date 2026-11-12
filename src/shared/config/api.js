@@ -588,7 +588,7 @@ export const getGuideTours = async (guideId, page = 0, size = 10, token = null) 
  * @param {Object} body - Tour create payload
  * @param {string} body.title - 3–200 chars
  * @param {string} body.description - 10–2000 chars
- * @param {string} body.category - TEA_TOURS | BEACH_TOURS | CULTURAL_TOURS | ADVENTURE_TOURS | FOOD_TOURS | WILDLIFE_TOURS
+ * @param {string} body.category - TEA_TOURS | BEACH_TOURS | CULTURAL_TOURS | ADVENTURE_TOURS | FOOD_TOURS | WILDLIFE_TOURS | SCENIC_TOURS | FAMILY_TOURS
  * @param {number} body.durationHours - 1–168
  * @param {number} [body.maxGroupSize] - 1–50, default 10
  * @param {number} body.pricePerPerson - 0.01–10000
@@ -612,6 +612,7 @@ export const createTour = async (body, token) => {
     title: String(body.title).trim(),
     description: String(body.description).trim(),
     category: String(body.category).trim(),
+    destination: String(body.destination || '').trim(),
     durationHours: Number(body.durationHours),
     pricePerPerson: Number(body.pricePerPerson)
   };
@@ -838,6 +839,117 @@ export const listBookings = async (token) => {
   }
   const data = await response.json();
   return Array.isArray(data) ? data : (data.content ?? []);
+};
+
+const throwApiError = async (response, fallback) => {
+  const errData = await response.json().catch(() => ({}));
+  const details = errData.details && typeof errData.details === 'object'
+    ? Object.values(errData.details).join(', ')
+    : '';
+  throw new Error(details || errData.message || fallback);
+};
+
+export const searchTours = async ({
+  searchTerm,
+  destination,
+  category,
+  minPrice,
+  maxPrice,
+  sortBy = 'createdAt',
+  sortDirection = 'desc',
+  page = 0,
+  size = 12
+} = {}) => {
+  const params = new URLSearchParams();
+  params.set('page', page);
+  params.set('size', size);
+  params.set('sortBy', sortBy);
+  params.set('sortDirection', sortDirection);
+  if (searchTerm) params.set('searchTerm', searchTerm);
+  if (destination) params.set('destination', destination);
+  if (category) params.set('category', category);
+  if (minPrice) params.set('minPrice', minPrice);
+  if (maxPrice) params.set('maxPrice', maxPrice);
+  const url = `${buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.LIST)}?${params.toString()}`;
+  const response = await fetch(url);
+  if (!response.ok) await throwApiError(response, 'Failed to search tours');
+  return response.json();
+};
+
+export const getTourAvailability = async (tourId, from, to) => {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const url = `${buildApiUrl(API_CONFIG.ENDPOINTS.TOURS.DETAIL, { id: tourId })}/availability?${params.toString()}`;
+  const response = await fetch(url);
+  if (!response.ok) await throwApiError(response, 'Failed to load availability');
+  return response.json();
+};
+
+export const createBooking = async (body, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.BOOKINGS.CREATE);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: getDefaultHeaders(true, token),
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) await throwApiError(response, 'Failed to create booking');
+  return response.json();
+};
+
+export const getBooking = async (bookingId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.BOOKINGS.DETAIL, { id: bookingId });
+  const response = await fetch(url, { headers: getDefaultHeaders(true, token) });
+  if (!response.ok) await throwApiError(response, 'Failed to load booking');
+  return response.json();
+};
+
+export const cancelBooking = async (bookingId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.BOOKINGS.CANCEL, { id: bookingId });
+  const response = await fetch(url, { method: 'POST', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) await throwApiError(response, 'Failed to cancel booking');
+  return response.json();
+};
+
+export const createPaymentIntent = async (bookingId, token) => {
+  const url = `${buildApiUrl('/payments/intent')}?bookingId=${bookingId}`;
+  const response = await fetch(url, { method: 'POST', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) await throwApiError(response, 'Failed to start payment');
+  return response.json();
+};
+
+export const confirmPayment = async (body, token) => {
+  const url = buildApiUrl('/payments/confirm');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: getDefaultHeaders(true, token),
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) await throwApiError(response, 'Failed to confirm payment');
+  return response.json();
+};
+
+export const getWishlist = async (token) => {
+  const url = buildApiUrl('/wishlist');
+  const response = await fetch(url, { headers: getDefaultHeaders(true, token) });
+  if (!response.ok) await throwApiError(response, 'Failed to load wishlist');
+  return response.json();
+};
+
+export const addWishlist = async (tourId, token) => {
+  const url = buildApiUrl('/wishlist');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: getDefaultHeaders(true, token),
+    body: JSON.stringify({ tourId })
+  });
+  if (!response.ok && response.status !== 201) await throwApiError(response, 'Failed to save tour');
+};
+
+export const removeWishlist = async (tourId, token) => {
+  const url = buildApiUrl('/wishlist/:tourId', { tourId });
+  const response = await fetch(url, { method: 'DELETE', headers: getDefaultHeaders(true, token) });
+  if (!response.ok && response.status !== 204) await throwApiError(response, 'Failed to remove saved tour');
 };
 
 // --- Products API ---

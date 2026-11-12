@@ -4,6 +4,7 @@ import { Plus, X, ArrowLeft, Save, Image as ImageIcon } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, getTourById, createTour as createTourApi } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
 import ImagePicker from '../../../shared/components/ImagePicker';
+import { DESTINATIONS, TOUR_CATEGORIES } from '../../../shared/data/destinations';
 
 // Parse duration from API (number of hours or string like "4 hours", "1 day")
 const parseDurationHours = (dur) => {
@@ -18,16 +19,6 @@ const parseDurationHours = (dur) => {
   if (dayMatch) return String(Number(dayMatch[1]) * 24);
   return s;
 };
-
-// API category enum (exact values for POST /api/v1/tours)
-const TOUR_CATEGORIES = [
-  { value: 'TEA_TOURS', label: 'Tea Tours' },
-  { value: 'BEACH_TOURS', label: 'Beach Tours' },
-  { value: 'CULTURAL_TOURS', label: 'Cultural Tours' },
-  { value: 'ADVENTURE_TOURS', label: 'Adventure Tours' },
-  { value: 'FOOD_TOURS', label: 'Food Tours' },
-  { value: 'WILDLIFE_TOURS', label: 'Wildlife Tours' }
-];
 
 const CreateTour = () => {
   const navigate = useNavigate();
@@ -45,6 +36,7 @@ const CreateTour = () => {
     title: '',
     description: '',
     category: '',
+    destination: '',
     durationHours: '',
     maxGroupSize: '10',
     price: '',
@@ -76,6 +68,7 @@ const CreateTour = () => {
           title: tour.title || '',
           description: tour.description || '',
           category: tour.category || '',
+          destination: tour.destination || '',
           durationHours: parseDurationHours(tour.durationHours ?? tour.duration),
           maxGroupSize: (tour.maxGroupSize != null ? tour.maxGroupSize : 10)?.toString() ?? '10',
           price: (tour.pricePerPerson != null ? tour.pricePerPerson : tour.price)?.toString() ?? '',
@@ -169,6 +162,7 @@ const CreateTour = () => {
         else if (desc.length < 10) newErrors.description = 'Description must be at least 10 characters';
         else if (desc.length > 2000) newErrors.description = 'Description must be at most 2000 characters';
         if (!tourForm.category) newErrors.category = 'Category is required';
+        if (!tourForm.destination) newErrors.destination = 'Destination is required';
         break;
       }
       case 2: {
@@ -222,6 +216,7 @@ const CreateTour = () => {
       title: tourForm.title.trim(),
       description: tourForm.description.trim(),
       category: tourForm.category,
+      destination: tourForm.destination,
       durationHours: Number(tourForm.durationHours) || 1,
       maxGroupSize: Number(tourForm.maxGroupSize) || 10,
       pricePerPerson: parseFloat(tourForm.price) || 0,
@@ -407,6 +402,26 @@ const CreateTour = () => {
                       </select>
                       {errors.category && (
                         <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Destination *</label>
+                      <select
+                        name="destination"
+                        value={tourForm.destination}
+                        onChange={handleInputChange}
+                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                          errors.destination ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Select destination</option>
+                        {DESTINATIONS.map((place) => (
+                          <option key={place.slug} value={place.name}>{place.name}</option>
+                        ))}
+                      </select>
+                      {errors.destination && (
+                        <p className="mt-1 text-sm text-red-600">{errors.destination}</p>
                       )}
                     </div>
 

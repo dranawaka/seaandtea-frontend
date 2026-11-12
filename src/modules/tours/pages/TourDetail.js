@@ -1,19 +1,141 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Calendar as CalendarIcon, Users, DollarSign, Clock, Check, X, Heart, Share2 } from 'lucide-react';
-import { getTourById, getTourReviews, getReviewsRating, submitReview, listBookings, getGuideProfileById } from '../../../shared/config/api';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { MapPin, Star, Calendar as CalendarIcon, Users, Clock, Check, X, Heart, Share2, Languages, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getTourById, getTourReviews, getReviewsRating, submitReview, listBookings, getGuideProfileById, getTourAvailability, createBooking, getWishlist, addWishlist, removeWishlist } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { categoryLabel, formatDuration, formatLkr, formatUsd } from '../../../shared/data/destinations';
+import { preferSriLankanPhoto } from '../../../shared/utils/imageUtils';
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1566296314736-6eaac1ca0cb9?auto=format&fit=crop&w=1400&q=80';
+
+function isoDate(value) {
+  if (!value) return '';
+  if (Array.isArray(value)) {
+    const [year, month, day] = value;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  return String(value).slice(0, 10);
+}
+
+function formatClock(value) {
+  if (!value) return '';
+  if (Array.isArray(value)) {
+    const [hour, minute] = value;
+    return `${String(hour).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
+  }
+  return String(value).slice(0, 5);
+}
+
+function languageList(languages) {
+  if (!Array.isArray(languages)) return '';
+  return languages.map((item) => (typeof item === 'string' ? item : item.language)).filter(Boolean).join(', ');
+}
+
+function dateLabel(iso) {
+  const parsed = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return parsed.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function Stars({ value, className = 'h-4 w-4' }) {
+  const score = Number(value) || 0;
+  return (
+    <span className="inline-flex">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star key={star} className={`${className} ${score >= star ? 'text-accent-500 fill-accent-500' : 'text-primary-200'}`} />
+      ))}
+    </span>
+  );
+}
+
+function PhotoGrid({ images, title }) {
+  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
+  const photos = images.length ? images : [FALLBACK_IMAGE];
+  const current = photos[Math.min(active, photos.length - 1)];
+  const side = photos.map((src, index) => ({ src, index })).filter((item) => item.index !== active).slice(0, 3);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'ArrowRight') setActive((index) => (index + 1) % photos.length);
+      if (event.key === 'ArrowLeft') setActive((index) => (index - 1 + photos.length) % photos.length);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, photos.length]);
+
+  return (
+    <>
+      <div className={`grid gap-2 ${side.length ? 'md:grid-cols-3 md:h-[420px]' : ''}`}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`relative overflow-hidden rounded-2xl ${side.length ? 'md:col-span-2 h-64 md:h-full' : 'h-72 md:h-[420px]'}`}
+        >
+          <img src={current} alt={title} className="h-full w-full object-cover" onError={(event) => { event.currentTarget.src = FALLBACK_IMAGE; }} />
+        </button>
+        {side.length > 0 && (
+          <div className="hidden md:grid grid-rows-3 gap-2">
+            {side.map((item, position) => (
+              <button key={`${item.src}-${item.index}`} type="button" onClick={() => setActive(item.index)} className="relative overflow-hidden rounded-2xl">
+                <img src={item.src} alt="" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.src = FALLBACK_IMAGE; }} />
+                {position === side.length - 1 && photos.length > 1 && (
+                  <span className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-ink/50 to-transparent p-3 text-sm font-bold text-white">
+                    {photos.length} photos
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {photos.length > 1 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto md:hidden">
+          {photos.map((src, index) => (
+            <button key={`${src}-${index}`} type="button" onClick={() => setActive(index)} className={`h-16 w-24 shrink-0 overflow-hidden rounded-xl ring-2 ${index === active ? 'ring-primary-600' : 'ring-transparent'}`}>
+              <img src={src} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4" onClick={() => setOpen(false)}>
+          <button type="button" className="absolute right-4 top-4 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white" onClick={() => setOpen(false)}>Close</button>
+          {photos.length > 1 && (
+            <button type="button" aria-label="Previous photo" className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white" onClick={(event) => { event.stopPropagation(); setActive((index) => (index - 1 + photos.length) % photos.length); }}>
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+          )}
+          <img src={current} alt={title} className="max-h-[80vh] max-w-5xl rounded-2xl object-contain" onClick={(event) => event.stopPropagation()} />
+          {photos.length > 1 && (
+            <button type="button" aria-label="Next photo" className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white" onClick={(event) => { event.stopPropagation(); setActive((index) => (index + 1) % photos.length); }}>
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
 
 const TourDetail = () => {
   const { id } = useParams();
-  const { user, token, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { token, isAuthenticated } = useAuth();
   const [tour, setTour] = useState(null);
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(searchParams.get('date') || '');
   const [participants, setParticipants] = useState(2);
+  const [availability, setAvailability] = useState([]);
+  const [bookingError, setBookingError] = useState('');
+  const [booking, setBooking] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [copied, setCopied] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const [reviews, setReviews] = useState([]);
   const [ratingSummary, setRatingSummary] = useState(null);
@@ -30,23 +152,29 @@ const TourDetail = () => {
       ...day,
       activities: Array.isArray(day?.activities) ? day.activities : []
     })) : [];
-    const primaryOrFirst = (t.images && t.images.length > 0)
-      ? (t.images.find((img) => img.isPrimary) || t.images[0])
-      : null;
+    const images = Array.isArray(t.images) ? t.images : [];
+    const primaryOrFirst = images.length > 0 ? (images.find((img) => img.isPrimary) || images[0]) : null;
     const imageUrlFromArray = primaryOrFirst ? (primaryOrFirst.imageUrl || primaryOrFirst.url) : null;
     return {
       ...t,
       rating: t.averageRating ?? t.rating ?? 0,
       reviews: t.totalReviews ?? t.reviewCount ?? t.reviews ?? 0,
       price: t.pricePerPerson ?? t.price,
-      image: t.imageUrl ?? imageUrlFromArray ?? t.image,
-      location: t.location ?? t.destination,
-      duration: t.duration ?? t.durationHours ? `${t.durationHours}h` : '',
+      image: preferSriLankanPhoto(t.imageUrl ?? imageUrlFromArray ?? t.image),
+      location: t.destination || t.location || t.meetingPoint || 'Sri Lanka',
+      destination: t.destination || t.location || '',
+      meetingPoint: t.meetingPoint || '',
+      cancellationPolicy: t.cancellationPolicy || 'Free cancellation up to 48 hours before departure',
+      duration: t.durationHours ? formatDuration(t.durationHours) : (t.duration || ''),
+      durationHours: t.durationHours,
       groupSize: t.maxGroupSize ?? t.groupSize,
+      maxGroupSize: t.maxGroupSize ?? t.groupSize ?? 8,
       highlights: Array.isArray(t.highlights) ? t.highlights : [],
+      languages: Array.isArray(t.languages) ? t.languages : [],
       itinerary,
-      included: Array.isArray(t.included) ? t.included : [],
-      notIncluded: Array.isArray(t.notIncluded) ? t.notIncluded : []
+      images,
+      included: Array.isArray(t.includedItems) ? t.includedItems : (Array.isArray(t.included) ? t.included : []),
+      notIncluded: Array.isArray(t.excludedItems) ? t.excludedItems : (Array.isArray(t.notIncluded) ? t.notIncluded : [])
     };
   };
 
@@ -57,26 +185,47 @@ const TourDetail = () => {
       if (tourData) {
         const normalized = normalizeTour(tourData);
         setTour(normalized);
-        if (tourData.guideId != null) {
+        const embedded = tourData.guide;
+        if (embedded) {
+          setGuide({
+            id: embedded.id,
+            name: [embedded.firstName, embedded.lastName].filter(Boolean).join(' ') || embedded.displayName || 'Local operator',
+            image: embedded.profilePictureUrl,
+            location: embedded.location || tourData.destination || 'Sri Lanka',
+            rating: embedded.averageRating ?? 0,
+            reviews: embedded.totalReviews ?? 0,
+            tours: embedded.totalTours ?? embedded.tourCount ?? 0,
+            bio: embedded.bio || embedded.shortBio || '',
+            verified: Boolean(embedded.isVerified)
+          });
+        }
+        const guideId = tourData.guideId ?? embedded?.id;
+        if (guideId != null) {
           try {
-            const guideData = await getGuideProfileById(tourData.guideId);
-            setGuide({
-              id: guideData.id,
-              name: guideData.user?.firstName ? `${guideData.user.firstName} ${guideData.user.lastName || ''}`.trim() : guideData.displayName || 'Guide',
-              image: guideData.profilePictureUrl || guideData.user?.profilePictureUrl,
-              location: guideData.location,
-              rating: guideData.averageRating ?? 0,
-              reviews: guideData.totalReviews ?? 0,
-              tours: guideData.tourCount ?? 0,
-              bio: guideData.bio || guideData.shortBio || ''
-            });
+            const guideData = await getGuideProfileById(guideId);
+            setGuide((current) => ({
+              id: guideData.id ?? current?.id,
+              name: guideData.user?.firstName
+                ? `${guideData.user.firstName} ${guideData.user.lastName || ''}`.trim()
+                : guideData.displayName || current?.name || 'Local operator',
+              image: guideData.profilePictureUrl || guideData.user?.profilePictureUrl || current?.image,
+              location: guideData.location || current?.location || tourData.destination,
+              rating: guideData.averageRating ?? current?.rating ?? 0,
+              reviews: guideData.totalReviews ?? current?.reviews ?? 0,
+              tours: guideData.tourCount ?? guideData.totalTours ?? current?.tours ?? 0,
+              bio: guideData.bio || guideData.shortBio || current?.bio || '',
+              verified: guideData.verificationStatus === 'VERIFIED' || current?.verified || false
+            }));
           } catch (e) {
             console.warn('Could not load guide:', e);
           }
         }
+      } else {
+        setTour(null);
       }
     } catch (error) {
       console.error('Error loading tour data:', error);
+      setTour(null);
     } finally {
       setLoading(false);
     }
@@ -100,8 +249,38 @@ const TourDetail = () => {
   }, [id]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadTourData();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const from = new Date().toISOString().split('T')[0];
+    const end = new Date();
+    end.setDate(end.getDate() + 60);
+    const to = end.toISOString().split('T')[0];
+    getTourAvailability(id, from, to)
+      .then((days) => setAvailability(Array.isArray(days) ? days : []))
+      .catch(() => setAvailability([]));
+  }, [id]);
+
+  useEffect(() => {
+    if (!token || !id) return;
+    getWishlist(token)
+      .then((items) => setIsFavorite((items || []).some((item) => String(item.id) === String(id))))
+      .catch(() => setIsFavorite(false));
+  }, [token, id]);
+
+  const spotsForDate = availability.find((day) => isoDate(day.date) === selectedDate);
+  const remainingSpots = spotsForDate ? Number(spotsForDate.remainingSpots) : (tour?.maxGroupSize || 8);
+  const participantOptions = Math.max(0, Math.min(remainingSpots || 0, tour?.maxGroupSize || 8));
+  const openDays = availability.filter((day) => Number(day.remainingSpots) > 0).slice(0, 6);
+
+  useEffect(() => {
+    if (participantOptions > 0 && participants > participantOptions) {
+      setParticipants(participantOptions);
+    }
+  }, [participantOptions, participants]);
 
   const loadRatingSummary = useCallback(async () => {
     if (!tour?.id) return;
@@ -141,13 +320,69 @@ const TourDetail = () => {
   }, [token, tour?.id]);
 
   useEffect(() => {
-    if (activeTab === 'reviews' && isAuthenticated && token && tour?.id) {
+    if (isAuthenticated && token && tour?.id) {
       loadCompletedBookingsForReview();
     }
-  }, [activeTab, isAuthenticated, token, tour?.id, loadCompletedBookingsForReview]);
+  }, [isAuthenticated, token, tour?.id, loadCompletedBookingsForReview]);
 
-  const handleBooking = () => {
-    alert('Booking functionality would be implemented here. This would typically redirect to a payment system or booking form.');
+  const handleBooking = async () => {
+    if (!selectedDate) {
+      document.getElementById('book-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (!token) {
+      sessionStorage.setItem('postLoginPath', `/tour/${id}?date=${selectedDate}`);
+      navigate('/login');
+      return;
+    }
+    setBooking(true);
+    setBookingError('');
+    try {
+      const created = await createBooking({
+        tourId: Number(id),
+        date: selectedDate,
+        numberOfPeople: participants
+      }, token);
+      navigate(`/checkout/${created.id}`);
+    } catch (err) {
+      setBookingError(err.message || 'Could not book this tour');
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!token) {
+      sessionStorage.setItem('postLoginPath', `/tour/${id}`);
+      navigate('/login');
+      return;
+    }
+    try {
+      if (isFavorite) await removeWishlist(id, token);
+      else await addWishlist(Number(id), token);
+      setIsFavorite(!isFavorite);
+    } catch (err) {
+      setBookingError(err.message || 'Could not update wishlist');
+    }
+  };
+
+  const shareTour = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: tour?.title, url });
+        return;
+      } catch {
+        return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
   const handleSubmitReview = async (e) => {
@@ -193,20 +428,12 @@ const TourDetail = () => {
     return tour.price * participants;
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'itinerary', label: 'Itinerary' },
-    { id: 'included', label: 'What\'s Included' },
-    { id: 'guide', label: 'Your Guide' },
-    { id: 'reviews', label: 'Reviews' }
-  ];
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading tour details...</p>
+          <p className="text-ink/70">Loading experience...</p>
         </div>
       </div>
     );
@@ -214,491 +441,379 @@ const TourDetail = () => {
 
   if (!tour) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Tour Not Found</h1>
-          <p className="text-gray-600 mb-8">The tour you're looking for doesn't exist.</p>
-          <Link to="/tours" className="btn-primary">
-            Browse All Tours
-          </Link>
+      <div className="min-h-screen py-16">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <h1 className="text-3xl font-extrabold text-ink mb-4">Experience not found</h1>
+          <p className="text-ink/70 mb-8">This tour is not available.</p>
+          <Link to="/tours" className="btn-primary">Browse experiences</Link>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative">
-        <img 
-          src={tour.image || 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'} 
-          alt={tour.title}
-          className="w-full h-96 md:h-[500px] object-cover"
-          onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
-          }}
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-        <div className="absolute inset-0 flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white">
-            <div className="max-w-3xl">
-              <div className="flex items-center space-x-4 mb-4">
-                <span className="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {tour.category}
-                </span>
-                <div className="flex items-center">
-                  <Star className="h-5 w-5 text-secondary-400 mr-1" />
-                  <span className="font-medium">{(ratingSummary?.averageRating ?? tour.rating ?? 0).toFixed(1)}</span>
-                  <span className="ml-1">({ratingSummary?.totalCount ?? tour.reviews ?? 0} reviews)</span>
-                </div>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                {tour.title}
-              </h1>
-              <div className="flex items-center space-x-6 text-lg">
-                <div className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2" />
-                  {tour.location}
-                </div>
-                <div className="flex items-center">
-                  <CalendarIcon className="h-5 w-5 mr-2" />
-                  {tour.duration}
-                </div>
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  {tour.groupSize}
-                </div>
-              </div>
-            </div>
+  const score = Number(ratingSummary?.averageRating ?? tour.rating ?? 0);
+  const reviewCount = ratingSummary?.totalCount ?? tour.reviews ?? reviews.length;
+  const photos = tour.images.map((img) => preferSriLankanPhoto(img.imageUrl || img.url)).filter(Boolean);
+  if (photos.length === 0 && tour.image) photos.push(tour.image);
+  const spoken = languageList(tour.languages);
+  const departure = formatClock(tour.departureTime);
+  const facts = [
+    tour.duration ? { icon: Clock, label: 'Duration', value: tour.duration } : null,
+    tour.groupSize ? { icon: Users, label: 'Group size', value: `Up to ${tour.groupSize}` } : null,
+    spoken ? { icon: Languages, label: 'Live guide', value: spoken } : null,
+    tour.meetingPoint ? { icon: MapPin, label: 'Meeting point', value: tour.meetingPoint } : null,
+    { icon: ShieldCheck, label: 'Cancellation', value: tour.cancellationPolicy },
+    departure ? { icon: CalendarIcon, label: 'Departs', value: departure } : null
+  ].filter(Boolean);
+  const plan = tour.itinerary.length > 0
+    ? tour.itinerary.flatMap((day, dayIndex) => {
+        const activities = day.activities.length ? day.activities : [day.title || `Day ${day.day || dayIndex + 1}`];
+        return activities.map((activity, activityIndex) => ({
+          title: activityIndex === 0 && day.title ? day.title : activity,
+          detail: activityIndex === 0 && day.title ? activity : '',
+          marker: activityIndex === 0 ? `Day ${day.day || dayIndex + 1}` : ''
+        }));
+      })
+    : [
+        { marker: 'Start', title: tour.meetingPoint || tour.location, detail: departure ? `Meet at ${departure}` : 'Meet your guide' },
+        { marker: 'Experience', title: tour.title, detail: tour.duration ? `${tour.duration} in ${tour.location}` : tour.location },
+        { marker: 'End', title: tour.location, detail: 'The experience ends where your guide confirms' }
+      ];
+  const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+
+  const bookPanel = (
+    <div id="book-panel" className="card-modern p-5 scroll-mt-24">
+      <p className="text-sm text-ink/60">From</p>
+      <p className="text-3xl font-extrabold text-ink">{formatLkr(tour.price)}</p>
+      <p className="text-sm text-ink/60 mb-4">{formatUsd(tour.price)} per person</p>
+      {openDays.length > 0 && (
+        <div className="mb-4">
+          <p className="text-sm font-bold text-ink mb-2">Upcoming dates</p>
+          <div className="flex flex-wrap gap-2">
+            {openDays.map((day) => {
+              const iso = isoDate(day.date);
+              const selected = iso === selectedDate;
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => setSelectedDate(iso)}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${selected ? 'border-primary-600 bg-primary-600 text-white' : 'border-primary-100 bg-sand text-ink hover:border-primary-400'}`}
+                >
+                  {dateLabel(iso)}
+                </button>
+              );
+            })}
           </div>
         </div>
-        
-        {/* Action Buttons */}
-        <div className="absolute top-4 right-4 flex space-x-2">
-          <button
-            onClick={() => setIsFavorite(!isFavorite)}
-            className={`p-3 rounded-full ${
-              isFavorite ? 'bg-red-500 text-white' : 'bg-white bg-opacity-20 text-white hover:bg-opacity-30'
-            } transition-all duration-200`}
-          >
-            <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
-          <button className="p-3 rounded-full bg-white bg-opacity-20 text-white hover:bg-opacity-30 transition-all duration-200">
-            <Share2 className="h-5 w-5" />
-          </button>
-        </div>
-      </section>
+      )}
+      <label className="block text-sm font-bold text-ink mb-1">Date</label>
+      <input
+        type="date"
+        value={selectedDate}
+        onChange={(event) => setSelectedDate(event.target.value)}
+        className="input-field mb-3"
+        min={new Date().toISOString().split('T')[0]}
+      />
+      <label className="block text-sm font-bold text-ink mb-1">Travelers</label>
+      <select
+        value={participants}
+        onChange={(event) => setParticipants(parseInt(event.target.value, 10))}
+        className="input-field"
+        disabled={participantOptions < 1}
+      >
+        {Array.from({ length: Math.max(participantOptions, 1) }, (_, index) => index + 1).map((num) => (
+          <option key={num} value={num} disabled={num > participantOptions}>
+            {num} {num === 1 ? 'person' : 'people'}
+          </option>
+        ))}
+      </select>
+      {selectedDate && (
+        <p className="text-xs text-ink/60 mt-1">{remainingSpots > 0 ? `${remainingSpots} spots left` : 'Sold out on this date'}</p>
+      )}
+      <div className="mt-4 border-t border-primary-100 pt-4 space-y-1 text-sm">
+        <div className="flex justify-between"><span className="text-ink/70">{participants} × {formatLkr(tour.price)}</span><span className="font-bold">{formatLkr(calculateTotalPrice())}</span></div>
+        <p className="text-xs text-ink/50">Charged as {formatUsd(calculateTotalPrice())}</p>
+      </div>
+      {bookingError && <p className="text-sm text-red-600 mt-3">{bookingError}</p>}
+      <button
+        type="button"
+        onClick={handleBooking}
+        disabled={booking || (Boolean(selectedDate) && remainingSpots < 1)}
+        className="btn-primary mt-4 w-full py-3 text-base disabled:opacity-50"
+      >
+        {booking ? 'Booking…' : selectedDate ? 'Book now' : 'Check availability'}
+      </button>
+      <p className="text-center text-sm text-ink/60 mt-3">{tour.cancellationPolicy}</p>
+    </div>
+  );
 
-      {/* Main Content */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-3 gap-12">
-            {/* Left Column - Tour Details */}
-            <div className="lg:col-span-2">
-              {/* Navigation Tabs */}
-              <div className="bg-white rounded-xl shadow-lg mb-8">
-                <nav className="flex space-x-8 p-6 border-b">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === tab.id
-                          ? 'border-primary-500 text-primary-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </nav>
-                
-                {/* Tab Content */}
-                <div className="p-6">
-                  {/* Overview Tab */}
-                  {activeTab === 'overview' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Tour Overview</h2>
-                      <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                        {tour.description}
-                      </p>
-                      
-                      <div className="mb-8">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-4">Highlights</h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {tour.highlights.map((highlight, index) => (
-                            <div key={index} className="flex items-center">
-                              <div className="w-2 h-2 bg-primary-500 rounded-full mr-3"></div>
-                              <span className="text-gray-700">{highlight}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-50 rounded-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Facts</h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div className="flex items-center">
-                            <Clock className="h-5 w-5 text-gray-400 mr-3" />
-                            <span className="text-gray-700">Duration: {tour.duration}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Users className="h-5 w-5 text-gray-400 mr-3" />
-                            <span className="text-gray-700">Group Size: {tour.groupSize}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="h-5 w-5 text-gray-400 mr-3" />
-                            <span className="text-gray-700">Location: {tour.location}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <DollarSign className="h-5 w-5 text-gray-400 mr-3" />
-                            <span className="text-gray-700">Price: ${tour.price} per person</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Itinerary Tab */}
-                  {activeTab === 'itinerary' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Daily Itinerary</h2>
-                      <div className="space-y-6">
-                        {tour.itinerary.map((day, index) => (
-                          <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
-                            <div className="flex items-center mb-4">
-                              <div className="bg-primary-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4">
-                                {day.day}
-                              </div>
-                              <h3 className="text-xl font-semibold text-gray-900">{day.title}</h3>
-                            </div>
-                            <div className="space-y-2">
-                              {day.activities.map((activity, activityIndex) => (
-                                <div key={activityIndex} className="flex items-start">
-                                  <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                                  <span className="text-gray-700">{activity}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* What's Included Tab */}
-                  {activeTab === 'included' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-6">What's Included & Not Included</h2>
-                      
-                      <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                            <Check className="h-5 w-5 text-green-500 mr-2" />
-                            What's Included
-                          </h3>
-                          <div className="space-y-3">
-                            {tour.included.map((item, index) => (
-                              <div key={index} className="flex items-center">
-                                <Check className="h-4 w-4 text-green-500 mr-3" />
-                                <span className="text-gray-700">{item}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                            <X className="h-5 w-5 text-red-500 mr-2" />
-                            Not Included
-                          </h3>
-                          <div className="space-y-3">
-                            {tour.notIncluded.map((item, index) => (
-                              <div key={index} className="flex items-center">
-                                <X className="h-4 w-4 text-red-500 mr-3" />
-                                <span className="text-gray-700">{item}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Guide Tab */}
-                  {activeTab === 'guide' && guide && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Meet Your Guide</h2>
-                      
-                      <div className="bg-white border border-gray-200 rounded-lg p-6">
-                        <div className="flex items-start space-x-6">
-                          {guide.image ? (
-                            <img src={guide.image} alt={guide.name} className="w-24 h-24 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-2xl font-semibold text-primary-700">
-                              {(guide.name || 'G').charAt(0)}
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-2">{guide.name}</h3>
-                            <div className="flex items-center text-gray-600 mb-3">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {guide.location}
-                            </div>
-                            <div className="flex items-center space-x-4 mb-4">
-                              <div className="flex items-center">
-                                <Star className="h-4 w-4 text-secondary-500 mr-1" />
-                                <span className="text-sm">{guide.rating} ({guide.reviews} reviews)</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Users className="h-4 w-4 text-gray-400 mr-1" />
-                                <span className="text-sm">{guide.tours} tours</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 mb-4">{guide.bio}</p>
-                            <Link 
-                              to={`/guide/${guide.id}`}
-                              className="btn-outline"
-                            >
-                              View Full Profile
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Reviews Tab */}
-                  {activeTab === 'reviews' && (
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Traveler Reviews</h2>
-                      {reviewError && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">{reviewError}</div>
-                      )}
-                      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center">
-                            <Star className="h-8 w-8 text-secondary-500 mr-3" />
-                            <div>
-                              <div className="text-2xl font-bold text-gray-900">{(ratingSummary?.averageRating ?? tour.rating ?? 0).toFixed(1)}</div>
-                              <div className="text-gray-600">out of 5 stars</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-semibold text-gray-900">{ratingSummary?.totalCount ?? tour.reviews ?? reviews.length}</div>
-                            <div className="text-gray-600">total reviews</div>
-                          </div>
-                        </div>
-                        {ratingSummary?.ratingBreakdown && (
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <div className="text-sm font-medium text-gray-700 mb-2">Rating distribution</div>
-                            <div className="space-y-1">
-                              {[5, 4, 3, 2, 1].map((star) => {
-                                const count = ratingSummary.ratingBreakdown[String(star)] ?? 0;
-                                const total = ratingSummary.totalCount || 1;
-                                return (
-                                  <div key={star} className="flex items-center gap-2">
-                                    <span className="text-gray-600 w-6">{star} ★</span>
-                                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                      <div className="h-full bg-secondary-500 rounded-full" style={{ width: `${(count / total) * 100}%` }} />
-                                    </div>
-                                    <span className="text-gray-500 text-sm w-8">{count}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {isAuthenticated && token && (
-                        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Write a review</h3>
-                          {bookingsLoading ? (
-                            <div className="flex justify-center py-4">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-                            </div>
-                          ) : completedBookings.length === 0 ? (
-                            <p className="text-gray-600">You can leave a review after completing this tour. Book the tour and come back once it&apos;s completed.</p>
-                          ) : (
-                            <form onSubmit={handleSubmitReview} className="space-y-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Select booking to review</label>
-                                <select
-                                  required
-                                  className="input-field w-full"
-                                  value={reviewForm.bookingId ?? ''}
-                                  onChange={(e) => setReviewForm((f) => ({ ...f, bookingId: e.target.value ? Number(e.target.value) : null }))}
-                                >
-                                  <option value="">Choose a completed booking...</option>
-                                  {completedBookings.map((b) => (
-                                    <option key={b.id} value={b.id}>
-                                      {b.tour?.title || `Booking #${b.id}`} {b.tourDate ? ` – ${new Date(b.tourDate).toLocaleDateString()}` : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-                                <div className="flex gap-1">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                      key={star}
-                                      type="button"
-                                      onClick={() => setReviewForm((f) => ({ ...f, rating: star }))}
-                                      className="p-1 focus:outline-none"
-                                    >
-                                      <Star className={`h-8 w-8 ${reviewForm.rating >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Comment (optional, max 2000 characters)</label>
-                                <textarea
-                                  value={reviewForm.comment}
-                                  onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
-                                  rows={3}
-                                  maxLength={2000}
-                                  className="input-field w-full"
-                                  placeholder="Share your experience..."
-                                />
-                              </div>
-                              <button type="submit" disabled={submittingReview || !reviewForm.bookingId} className="btn-primary">
-                                {submittingReview ? 'Submitting...' : 'Submit review'}
-                              </button>
-                            </form>
-                          )}
-                        </div>
-                      )}
-
-                      {reviewsLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
-                        </div>
-                      ) : reviews.length === 0 ? (
-                        <div className="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
-                          No reviews yet. {isAuthenticated ? 'Be the first to review this tour!' : 'Log in to leave a review.'}
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {reviews.map((review) => (
-                            <div key={review.id} className="bg-white rounded-xl shadow-lg p-6">
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center">
-                                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold mr-3">
-                                    {(reviewDisplayName(review) || '?').charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold text-gray-900">{reviewDisplayName(review)}</div>
-                                    <div className="text-sm text-gray-500">{reviewDate(review)}</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star key={star} className={`h-4 w-4 ${(review.rating ?? 0) >= star ? 'text-secondary-500 fill-secondary-500' : 'text-gray-300'}`} />
-                                    ))}
-                                  </div>
-                                  {review.isVerified && (
-                                    <span className="text-sm text-green-600 font-medium">Verified</span>
-                                  )}
-                                </div>
-                              </div>
-                              {review.comment && <p className="text-gray-600">{review.comment}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+  return (
+    <div className="pb-24 lg:pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-x-10 lg:items-start">
+          <div className="lg:col-span-2">
+            <nav className="text-sm text-ink/60 mb-3">
+              <Link to="/" className="hover:text-primary-700">Home</Link>
+              <span> / </span>
+              <Link to="/tours" className="hover:text-primary-700">Experiences</Link>
+              {tour.destination && (
+                <>
+                  <span> / </span>
+                  <Link to={`/tours?destination=${encodeURIComponent(tour.destination)}`} className="hover:text-primary-700">{tour.destination}</Link>
+                </>
+              )}
+            </nav>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-ink leading-tight">{tour.title}</h1>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={shareTour} className="inline-flex items-center gap-1 rounded-full border border-primary-100 bg-white px-3 py-2 text-sm font-bold text-ink" aria-label="Share">
+                  <Share2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Share'}</span>
+                </button>
+                <button type="button" onClick={toggleFavorite} className="inline-flex items-center gap-1 rounded-full border border-primary-100 bg-white px-3 py-2 text-sm font-bold text-ink" aria-label={isFavorite ? 'Remove from wishlist' : 'Save'}>
+                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-accent-500 text-accent-500' : ''}`} />
+                  <span className="hidden sm:inline">{isFavorite ? 'Saved' : 'Save'}</span>
+                </button>
               </div>
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <span className="inline-flex items-center gap-1 font-bold text-ink">
+                <Stars value={score} />
+                {score.toFixed(1)}
+                <a href="#reviews" className="font-semibold text-primary-700 underline-offset-2 hover:underline">({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</a>
+              </span>
+              <Link to={`/tours?category=${tour.category}`} className="rounded-full bg-primary-50 px-3 py-1 font-bold text-primary-800">{categoryLabel(tour.category)}</Link>
+              <span className="inline-flex items-center text-ink/70"><MapPin className="h-4 w-4 mr-1" />{tour.location}</span>
+            </div>
+            <div className="mt-5">
+              <PhotoGrid images={photos} title={tour.title} />
+            </div>
+          </div>
 
-            {/* Right Column - Booking Card */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-8">
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="text-center mb-6">
-                    <div className="text-3xl font-bold text-gray-900 mb-2">
-                      ${tour.price}
-                    </div>
-                    <div className="text-gray-600">per person</div>
+          <aside className="mt-6 lg:mt-0 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:self-stretch">
+            <div className="lg:sticky lg:top-24">
+              {bookPanel}
+            </div>
+          </aside>
+
+          <div className="lg:col-span-2 mt-8 space-y-10">
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-y border-primary-100 py-6">
+              {facts.map((fact) => (
+                <div key={fact.label} className="flex gap-3">
+                  <fact.icon className="h-5 w-5 text-primary-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-ink">{fact.label}</p>
+                    <p className="text-sm text-ink/70">{fact.value}</p>
                   </div>
-                  
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Date
-                      </label>
-                      <div className="relative">
-                        <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          className="input-field pl-10 w-full"
-                          min={new Date().toISOString().split('T')[0]}
-                        />
-                      </div>
+                </div>
+              ))}
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-extrabold text-ink mb-3">About this activity</h2>
+              <p className="text-ink/80 text-lg leading-relaxed whitespace-pre-line">{tour.description}</p>
+            </section>
+
+            {tour.highlights.length > 0 && (
+              <section>
+                <h2 className="text-2xl font-extrabold text-ink mb-4">Highlights</h2>
+                <ul className="space-y-3">
+                  {tour.highlights.map((highlight) => (
+                    <li key={highlight} className="flex gap-3 text-ink/80">
+                      <Check className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {(tour.included.length > 0 || tour.notIncluded.length > 0) && (
+              <section className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-ink mb-4">Includes</h2>
+                  <ul className="space-y-2">
+                    {tour.included.map((item) => (
+                      <li key={item} className="flex gap-2 text-ink/80"><Check className="h-4 w-4 text-secondary-500 mt-1 shrink-0" />{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-ink mb-4">Not included</h2>
+                  <ul className="space-y-2">
+                    {tour.notIncluded.map((item) => (
+                      <li key={item} className="flex gap-2 text-ink/80"><X className="h-4 w-4 text-accent-500 mt-1 shrink-0" />{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h2 className="text-2xl font-extrabold text-ink mb-4">{tour.itinerary.length > 0 ? 'Itinerary' : 'How the day runs'}</h2>
+              <ol className="relative border-l-2 border-primary-100 ml-3 space-y-6">
+                {plan.map((step, index) => (
+                  <li key={`${step.marker}-${step.title}-${index}`} className="pl-6">
+                    <span className="absolute -left-[9px] mt-1 h-4 w-4 rounded-full bg-primary-600 ring-4 ring-sand" />
+                    {step.marker && <p className="text-xs font-bold uppercase tracking-wide text-primary-700">{step.marker}</p>}
+                    <p className="font-bold text-ink">{step.title}</p>
+                    {step.detail && step.detail !== step.title && <p className="text-sm text-ink/70 mt-1">{step.detail}</p>}
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            {guide && (
+              <section>
+                <h2 className="text-2xl font-extrabold text-ink mb-4">Activity provider</h2>
+                <div className="card-modern p-5 flex gap-4">
+                  {guide.image ? (
+                    <img src={guide.image} alt="" className="h-16 w-16 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-xl font-extrabold text-primary-800">
+                      {(guide.name || 'G').charAt(0)}
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Number of Participants
-                      </label>
+                  )}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-extrabold text-ink">{guide.name}</h3>
+                      {guide.verified && <span className="rounded-full bg-secondary-50 px-2 py-0.5 text-xs font-bold text-secondary-700">Verified</span>}
+                    </div>
+                    <p className="text-sm text-ink/70">{guide.location} · {guide.tours} experiences</p>
+                    {guide.bio && <p className="text-sm text-ink/80 mt-2">{guide.bio}</p>}
+                    {guide.id && <Link to={`/guide/${guide.id}`} className="inline-block mt-3 text-sm font-bold text-primary-700">View profile</Link>}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section id="reviews">
+              <h2 className="text-2xl font-extrabold text-ink mb-4">Reviews</h2>
+              {reviewError && <p className="mb-3 text-sm text-red-600">{reviewError}</p>}
+              <div className="flex flex-wrap items-end gap-6 mb-6">
+                <div>
+                  <p className="text-4xl font-extrabold text-ink">{score.toFixed(1)}</p>
+                  <Stars value={score} className="h-5 w-5" />
+                  <p className="text-sm text-ink/60 mt-1">{reviewCount} reviews</p>
+                </div>
+                {ratingSummary?.ratingBreakdown && (
+                  <div className="flex-1 min-w-[220px] space-y-1">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = ratingSummary.ratingBreakdown[String(star)] ?? 0;
+                      const total = ratingSummary.totalCount || 1;
+                      return (
+                        <div key={star} className="flex items-center gap-2 text-sm">
+                          <span className="w-4 text-ink/70">{star}</span>
+                          <div className="flex-1 h-2 rounded-full bg-primary-100 overflow-hidden">
+                            <div className="h-full bg-accent-500" style={{ width: `${(count / total) * 100}%` }} />
+                          </div>
+                          <span className="w-6 text-ink/50">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {isAuthenticated && token && (
+                <div className="card-modern p-5 mb-6">
+                  <h3 className="font-extrabold text-ink mb-3">Write a review</h3>
+                  {bookingsLoading ? (
+                    <p className="text-sm text-ink/60">Checking your bookings…</p>
+                  ) : completedBookings.length === 0 ? (
+                    <p className="text-sm text-ink/70">You can review this experience after you complete it.</p>
+                  ) : (
+                    <form onSubmit={handleSubmitReview} className="space-y-3">
                       <select
-                        value={participants}
-                        onChange={(e) => setParticipants(parseInt(e.target.value))}
+                        required
                         className="input-field"
+                        value={reviewForm.bookingId ?? ''}
+                        onChange={(event) => setReviewForm((form) => ({ ...form, bookingId: event.target.value ? Number(event.target.value) : null }))}
                       >
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                          <option key={num} value={num}>
-                            {num} {num === 1 ? 'person' : 'people'}
+                        <option value="">Choose a completed booking</option>
+                        {completedBookings.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            Booking #{item.id}{item.tourDate ? ` · ${new Date(item.tourDate).toLocaleDateString()}` : ''}
                           </option>
                         ))}
                       </select>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-4 mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">Price per person:</span>
-                      <span className="font-medium">${tour.price}</span>
-                    </div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">Participants:</span>
-                      <span className="font-medium">{participants}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-lg font-bold">
-                      <span>Total:</span>
-                      <span>${calculateTotalPrice()}</span>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleBooking}
-                    disabled={!selectedDate}
-                    className="btn-primary w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Book This Tour
-                  </button>
-                  
-                  <div className="text-center mt-4">
-                    <p className="text-sm text-gray-500">
-                      Free cancellation up to 48 hours before departure
-                    </p>
-                  </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button key={star} type="button" onClick={() => setReviewForm((form) => ({ ...form, rating: star }))} aria-label={`${star} stars`}>
+                            <Star className={`h-7 w-7 ${reviewForm.rating >= star ? 'text-accent-500 fill-accent-500' : 'text-primary-200'}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reviewForm.comment}
+                        onChange={(event) => setReviewForm((form) => ({ ...form, comment: event.target.value }))}
+                        rows={3}
+                        maxLength={2000}
+                        className="input-field"
+                        placeholder="How was the experience?"
+                      />
+                      <button type="submit" disabled={submittingReview || !reviewForm.bookingId} className="btn-primary disabled:opacity-50">
+                        {submittingReview ? 'Submitting…' : 'Submit review'}
+                      </button>
+                    </form>
+                  )}
                 </div>
-              </div>
-            </div>
+              )}
+
+              {reviewsLoading ? (
+                <p className="text-ink/60">Loading reviews…</p>
+              ) : reviews.length === 0 ? (
+                <p className="text-ink/60">No reviews yet.</p>
+              ) : (
+                <div className="space-y-5">
+                  {visibleReviews.map((review) => (
+                    <article key={review.id} className="border-b border-primary-100 pb-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center font-bold text-primary-800">
+                            {(reviewDisplayName(review) || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-ink">{reviewDisplayName(review)}</p>
+                            <p className="text-xs text-ink/50">{reviewDate(review)}</p>
+                          </div>
+                        </div>
+                        <Stars value={review.rating} />
+                      </div>
+                      {review.comment && <p className="mt-3 text-ink/80">{review.comment}</p>}
+                    </article>
+                  ))}
+                  {reviews.length > 3 && (
+                    <button type="button" className="btn-outline" onClick={() => setShowAllReviews((open) => !open)}>
+                      {showAllReviews ? 'Show fewer reviews' : `See all ${reviews.length} reviews`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
           </div>
         </div>
-      </section>
+      </div>
+
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-primary-100 bg-white px-4 py-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs text-ink/60">From</p>
+          <p className="text-lg font-extrabold text-ink">{formatLkr(tour.price)}</p>
+        </div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            if (selectedDate) handleBooking();
+            else document.getElementById('book-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+        >
+          {selectedDate ? 'Book now' : 'Check availability'}
+        </button>
+      </div>
     </div>
   );
 };
 
 export default TourDetail;
-

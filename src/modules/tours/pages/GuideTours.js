@@ -5,6 +5,7 @@ import { buildApiUrl, API_CONFIG, logApiCall, getTourById } from '../../../share
 import { useAuth } from '../../../shared/context/AuthContext';
 import ImagePicker from '../../../shared/components/ImagePicker';
 import { getTourImageUrl } from '../../../shared/utils/imageUtils';
+import { TOUR_CATEGORIES } from '../../../shared/data/destinations';
 
 const GuideTours = () => {
   const navigate = useNavigate();
@@ -471,16 +472,9 @@ const GuideTours = () => {
                 className="block w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">All Categories</option>
-                <option value="ADVENTURE">Adventure</option>
-                <option value="CULTURAL">Cultural</option>
-                <option value="NATURE">Nature</option>
-                <option value="FOOD">Food & Dining</option>
-                <option value="HISTORICAL">Historical</option>
-                <option value="WILDLIFE">Wildlife</option>
-                <option value="WATER_SPORTS">Water Sports</option>
-                <option value="HIKING">Hiking</option>
-                <option value="PHOTOGRAPHY">Photography</option>
-                <option value="WELLNESS">Wellness</option>
+                {TOUR_CATEGORIES.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
               </select>
             </div>
             
@@ -734,18 +728,9 @@ const TourModal = ({ isOpen, onClose, onSubmit, tourForm, setTourForm, handleInp
                   }`}
                 >
                   <option value="">Select category</option>
-                  <option value="TEA_TOURS">Tea Tours</option>
-                  <option value="BEACH_TOURS">Beach Tours</option>
-                  <option value="CULTURAL_TOURS">Cultural Tours</option>
-                  <option value="ADVENTURE_TOURS">Adventure Tours</option>
-                  <option value="FOOD_TOURS">Food Tours</option>
-                  <option value="NATURE_TOURS">Nature Tours</option>
-                  <option value="HISTORICAL_TOURS">Historical Tours</option>
-                  <option value="WILDLIFE_TOURS">Wildlife Tours</option>
-                  <option value="WATER_SPORTS">Water Sports</option>
-                  <option value="HIKING_TOURS">Hiking Tours</option>
-                  <option value="PHOTOGRAPHY_TOURS">Photography Tours</option>
-                  <option value="WELLNESS_TOURS">Wellness Tours</option>
+                  {TOUR_CATEGORIES.map((item) => (
+                    <option key={item.value} value={item.value}>{item.label}</option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>

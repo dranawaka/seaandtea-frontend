@@ -261,12 +261,13 @@ const Guides = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-12 brand-hero text-white rounded-[2rem] px-6 py-14 shadow-card relative overflow-hidden">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-secondary-300 mb-3">Verified locals</p>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Find Your Perfect Sri Lankan Guide
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Connect with verified local guides from Sri Lanka's thriving freelance community. 
+          <p className="text-lg md:text-xl text-primary-100 max-w-2xl mx-auto">
+            Connect with verified local guides from Sri Lanka's freelance community.
             Book by the hour or day with instant confirmation and secure payments.
           </p>
         </div>
