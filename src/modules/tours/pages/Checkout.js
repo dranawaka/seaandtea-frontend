@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { confirmPayment, createPaymentIntent, getBooking } from '../../../shared/config/api';
+import { FEATURE_SITE_PAYMENTS } from '../../../shared/config/features';
 import { formatLkr, formatPrice, formatUsd } from '../../../shared/data/destinations';
 import { useAuth } from '../../../shared/context/AuthContext';
 
@@ -69,6 +70,7 @@ const Checkout = () => {
   const [paid, setPaid] = useState(false);
 
   useEffect(() => {
+    if (!FEATURE_SITE_PAYMENTS) return;
     if (authLoading) return;
     if (!isAuthenticated) {
       sessionStorage.setItem('postLoginPath', `/checkout/${bookingId}`);
@@ -77,6 +79,10 @@ const Checkout = () => {
   }, [isAuthenticated, authLoading, navigate, bookingId]);
 
   useEffect(() => {
+    if (!FEATURE_SITE_PAYMENTS) {
+      setLoading(false);
+      return;
+    }
     if (!token || !bookingId) return;
     let cancelled = false;
     setLoading(true);
@@ -95,6 +101,19 @@ const Checkout = () => {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [token, bookingId]);
+
+  if (!FEATURE_SITE_PAYMENTS) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">Payments stay off the site</h1>
+        <p className="text-gray-600 mb-6">Guides pay a one-time fee to join. Travelers register and message a guide. You pay the guide directly for the trip.</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/guides" className="btn-primary">Find a guide</Link>
+          <Link to="/messages" className="btn-outline">Messages</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="flex justify-center py-24"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>;

@@ -244,7 +244,7 @@ For support or questions, please open an issue in the GitHub repository.
 ## 🔮 Future Enhancements
 
 - **Real-time Chat**: Direct messaging between guides and tourists
-- **Payment Integration**: Secure booking and payment processing
+- **On-site payments**: Not in MVP 1. Guides pay a one-time onboarding fee off the site. Travelers register and message guides.
 - **Review System**: User-generated reviews and ratings
 - **Multi-language Support**: Internationalization for global users
 - **Mobile App**: React Native companion app

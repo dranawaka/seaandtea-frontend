@@ -106,7 +106,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-20 py-16 md:py-24 w-full">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-primary-100 mb-3">Sri Lanka</p>
           <h1 className="text-4xl md:text-6xl font-extrabold max-w-3xl mb-4 leading-tight">Discover Sri Lanka through sea, tea, and local experiences.</h1>
-          <p className="text-lg text-primary-100 max-w-2xl mb-8">Tea country, beaches, wildlife, temples, and train rides, booked with local operators.</p>
+          <p className="text-lg text-primary-100 max-w-2xl mb-8">Tea country, beaches, wildlife, temples, and train rides, arranged with local guides.</p>
           <SearchBar showDate variant="hero" className="max-w-3xl" />
         </div>
       </ImageSlider>
@@ -144,17 +144,17 @@ const Home = () => {
         </div>
       </section>
 
-      {row('Popular experiences', 'What travelers book most', popular)}
+      {row('Popular experiences', 'What travelers ask local guides about', popular)}
       {row('Sea and Tea Originals', 'Curated picks from highly rated local operators', originals)}
 
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-ink mb-5">Book with confidence</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-ink mb-5">Meet a local guide</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: MapPin, title: 'Local operators', text: 'Tours are run by Sri Lankan guides and companies, not overseas resellers.' },
-              { icon: CalendarCheck, title: 'Free cancellation', text: 'Cancel a paid booking more than 48 hours before departure.' },
-              { icon: Star, title: 'Verified reviews', text: 'Ratings come from travelers who booked on Sea and Tea.' },
+              { icon: MapPin, title: 'Local operators', text: 'Experiences are run by Sri Lankan guides, not overseas resellers.' },
+              { icon: CalendarCheck, title: 'Message to arrange', text: 'Register, then contact a guide. You agree the date and price with them.' },
+              { icon: Star, title: 'Verified guides', text: 'Guides appear after a one-time onboarding fee is confirmed.' },
               { icon: Languages, title: 'English, Sinhala, Tamil', text: 'Support and many tours are offered in the languages of the island.' }
             ].map((item) => (
               <div key={item.title} className="card-modern p-5">
@@ -170,17 +170,17 @@ const Home = () => {
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-4">
           <div className="card-modern p-8">
-            <h2 className="text-2xl font-extrabold text-ink">Why book on Sea and Tea</h2>
+            <h2 className="text-2xl font-extrabold text-ink">Why use Sea and Tea</h2>
             <ul className="mt-4 space-y-3 text-ink/80">
-              <li className="flex gap-3"><Shield className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Prices are shown in LKR, with the USD amount beside them.</li>
+              <li className="flex gap-3"><Shield className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Listed prices are in LKR, with the USD amount beside them. You pay the guide, not the site.</li>
               <li className="flex gap-3"><MapPin className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Many experiences start at a hotel, station, or clear meeting point.</li>
-              <li className="flex gap-3"><CalendarCheck className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Cancellation windows give room when the weather turns.</li>
+              <li className="flex gap-3"><CalendarCheck className="h-5 w-5 text-secondary-500 shrink-0 mt-0.5" />Dates and changes are agreed in messages with the guide.</li>
             </ul>
           </div>
           <div className="brand-hero text-white rounded-2xl p-8">
             <Smartphone className="h-7 w-7 mb-3" />
-            <h2 className="text-2xl font-extrabold">Book from your phone</h2>
-            <p className="text-primary-100 mt-2">Most travelers in Sri Lanka book on a phone. Open Sea and Tea in your browser and add it to your home screen so tickets stay a tap away.</p>
+            <h2 className="text-2xl font-extrabold">Message from your phone</h2>
+            <p className="text-primary-100 mt-2">Register, find a guide, and keep the conversation on your phone. Add Sea and Tea to your home screen so messages stay a tap away.</p>
           </div>
         </div>
       </section>

@@ -5,6 +5,7 @@ import { buildApiUrl, API_CONFIG, getTourById, createTour as createTourApi } fro
 import { useAuth } from '../../../shared/context/AuthContext';
 import ImagePicker from '../../../shared/components/ImagePicker';
 import { DESTINATIONS, TOUR_CATEGORIES } from '../../../shared/data/destinations';
+import { FEATURE_SITE_PAYMENTS } from '../../../shared/config/features';
 
 // Parse duration from API (number of hours or string like "4 hours", "1 day")
 const parseDurationHours = (dur) => {
@@ -41,7 +42,7 @@ const CreateTour = () => {
     maxGroupSize: '10',
     price: '',
     instantBooking: false,
-    securePayment: true,
+    securePayment: FEATURE_SITE_PAYMENTS,
     languages: [],
     includes: [],
     excludes: [],
@@ -220,8 +221,8 @@ const CreateTour = () => {
       durationHours: Number(tourForm.durationHours) || 1,
       maxGroupSize: Number(tourForm.maxGroupSize) || 10,
       pricePerPerson: parseFloat(tourForm.price) || 0,
-      instantBooking: Boolean(tourForm.instantBooking),
-      securePayment: Boolean(tourForm.securePayment),
+      instantBooking: FEATURE_SITE_PAYMENTS && Boolean(tourForm.instantBooking),
+      securePayment: FEATURE_SITE_PAYMENTS && Boolean(tourForm.securePayment),
       languages: tourForm.languages || [],
       highlights: (tourForm.highlights || []).slice(0, 20),
       includedItems: (tourForm.includes || []).slice(0, 30),
@@ -567,6 +568,7 @@ const CreateTour = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
                   <div className="space-y-6">
+                    {FEATURE_SITE_PAYMENTS ? (
                     <div className="flex flex-wrap gap-6">
                       <label className="inline-flex items-center">
                         <input
@@ -587,6 +589,9 @@ const CreateTour = () => {
                         <span className="ml-2 text-sm text-gray-700">Secure payment</span>
                       </label>
                     </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">Travelers message you to arrange the trip. Sea and Tea does not take payment for tours.</p>
+                    )}
                     <ArrayField
                       label="Languages (max 10)"
                       field="languages"

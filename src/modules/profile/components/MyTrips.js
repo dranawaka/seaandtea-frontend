@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cancelBooking, listBookings } from '../../../shared/config/api';
 import { formatLkr, formatUsd } from '../../../shared/data/destinations';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { FEATURE_SITE_PAYMENTS } from '../../../shared/config/features';
 
 const MyTrips = () => {
   const { token } = useAuth();
@@ -50,7 +51,11 @@ const MyTrips = () => {
         {loading ? (
           <p className="text-gray-500">Loading trips…</p>
         ) : bookings.length === 0 ? (
-          <p className="text-gray-600">No bookings yet. <Link to="/tours" className="text-primary-700 font-semibold">Find an experience</Link></p>
+          <p className="text-gray-600">
+            {FEATURE_SITE_PAYMENTS
+              ? <>No bookings yet. <Link to="/tours" className="text-primary-700 font-semibold">Find an experience</Link></>
+              : <>Trips are arranged with the guide. <Link to="/guides" className="text-primary-700 font-semibold">Message a guide</Link></>}
+          </p>
         ) : (
           <ul className="divide-y divide-gray-100">
             {bookings.map((booking) => (
@@ -58,10 +63,14 @@ const MyTrips = () => {
                 <div>
                   <Link to={`/tour/${booking.tourId}`} className="font-semibold text-gray-900 hover:text-primary-700">{booking.tourTitle}</Link>
                   <p className="text-sm text-gray-600">{booking.bookingDate} · {booking.destination} · {booking.numberOfPeople} people</p>
-                  <p className="text-sm text-gray-500">{booking.status} · {booking.paymentStatus} · {formatLkr(booking.totalAmount)} ({formatUsd(booking.totalAmount)})</p>
+                  <p className="text-sm text-gray-500">
+                    {booking.status}
+                    {FEATURE_SITE_PAYMENTS ? ` · ${booking.paymentStatus}` : ''}
+                    {' · '}{formatLkr(booking.totalAmount)} ({formatUsd(booking.totalAmount)})
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  {booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED' && (
+                  {FEATURE_SITE_PAYMENTS && booking.paymentStatus !== 'PAID' && booking.status !== 'CANCELLED' && (
                     <Link to={`/checkout/${booking.id}`} className="btn-primary text-sm py-2">Pay</Link>
                   )}
                   {booking.status !== 'CANCELLED' && booking.status !== 'COMPLETED' && (

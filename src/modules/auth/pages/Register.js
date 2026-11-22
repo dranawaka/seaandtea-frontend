@@ -398,7 +398,7 @@ const Register = () => {
                   }`}>
                     <User className="h-6 w-6 mx-auto mb-2" />
                     <div className="font-medium">Traveler</div>
-                    <div className="text-xs">Book tours & connect with guides</div>
+                    <div className="text-xs">Register and message local guides</div>
                   </div>
                 </label>
                 
@@ -418,10 +418,20 @@ const Register = () => {
                   }`}>
                     <Globe className="h-6 w-6 mx-auto mb-2" />
                     <div className="font-medium">Guide</div>
-                    <div className="text-xs">Offer tours & share local expertise</div>
+                    <div className="text-xs">One-time fee to join and be listed</div>
                   </div>
                 </label>
               </div>
+              {formData.userType === 'guide' && (
+                <p className="mt-3 text-sm text-gray-600">
+                  Guides pay a one-time onboarding fee directly to Sea and Tea. The fee is not charged on this website. Your profile is listed after that payment is confirmed.
+                </p>
+              )}
+              {formData.userType === 'traveler' && (
+                <p className="mt-3 text-sm text-gray-600">
+                  Travelers register for free and message guides. Trip payment is arranged with the guide, not through the site.
+                </p>
+              )}
             </div>
 
             {/* Name Fields */}

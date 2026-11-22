@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Users, Globe, Filter, Search, Clock, Shield, CheckCircle, Zap, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { MapPin, Star, Users, Globe, Filter, Search, Clock, Shield, CheckCircle, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { buildApiUrl, API_CONFIG, logApiCall, getGuidesByVerificationStatus, getAllGuides, getVerifiedGuidesPaginated } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { PLACEHOLDER_IMAGES, handleImageError } from '../../../shared/utils/imageUtils';
@@ -267,8 +267,7 @@ const Guides = () => {
             Find Your Perfect Sri Lankan Guide
           </h1>
           <p className="text-lg md:text-xl text-primary-100 max-w-2xl mx-auto">
-            Connect with verified local guides from Sri Lanka's freelance community.
-            Book by the hour or day with instant confirmation and secure payments.
+            Connect with verified local guides from Sri Lanka. Register and message a guide to arrange a trip. Payment stays between you and the guide.
           </p>
         </div>
 
@@ -511,8 +510,8 @@ const Guides = () => {
                 {/* Instant Booking */}
                 <div className="flex items-center justify-center mb-4 text-sm">
                   <div className="flex items-center text-blue-600">
-                    <Zap className="h-4 w-4 mr-1" />
-                    <span className="font-medium">Instant Booking Available</span>
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    <span className="font-medium">Message to arrange</span>
                   </div>
                 </div>
 

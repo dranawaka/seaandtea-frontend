@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { MapPin, Star, Calendar as CalendarIcon, Users, Clock, Check, X, Heart, Share2, Languages, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Star, Calendar as CalendarIcon, Users, Clock, Check, X, Heart, Share2, Languages, ShieldCheck, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { FEATURE_SITE_PAYMENTS } from '../../../shared/config/features';
 import { getTourById, getTourReviews, getReviewsRating, submitReview, listBookings, getGuideProfileById, getTourAvailability, createBooking, getWishlist, addWishlist, removeWishlist } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { categoryLabel, formatDuration, formatLkr, formatUsd } from '../../../shared/data/destinations';
@@ -189,6 +190,8 @@ const TourDetail = () => {
         if (embedded) {
           setGuide({
             id: embedded.id,
+            userId: embedded.userId ?? embedded.user?.id,
+            email: embedded.email || embedded.userEmail || embedded.user?.email,
             name: [embedded.firstName, embedded.lastName].filter(Boolean).join(' ') || embedded.displayName || 'Local operator',
             image: embedded.profilePictureUrl,
             location: embedded.location || tourData.destination || 'Sri Lanka',
@@ -205,6 +208,8 @@ const TourDetail = () => {
             const guideData = await getGuideProfileById(guideId);
             setGuide((current) => ({
               id: guideData.id ?? current?.id,
+              userId: guideData.userId ?? guideData.user?.id ?? current?.userId,
+              email: guideData.userEmail || guideData.user?.email || current?.email,
               name: guideData.user?.firstName
                 ? `${guideData.user.firstName} ${guideData.user.lastName || ''}`.trim()
                 : guideData.displayName || current?.name || 'Local operator',
@@ -324,6 +329,28 @@ const TourDetail = () => {
       loadCompletedBookingsForReview();
     }
   }, [isAuthenticated, token, tour?.id, loadCompletedBookingsForReview]);
+
+  const contactGuide = () => {
+    if (!guide?.userId) {
+      if (guide?.id) navigate(`/guide/${guide.id}`);
+      return;
+    }
+    if (!token) {
+      sessionStorage.setItem('postLoginPath', `/tour/${id}`);
+      navigate('/login');
+      return;
+    }
+    navigate('/messages', {
+      state: {
+        startConversation: {
+          partnerId: guide.userId,
+          partnerName: guide.name,
+          partnerEmail: guide.email || undefined,
+          partnerRole: 'GUIDE'
+        }
+      }
+    });
+  };
 
   const handleBooking = async () => {
     if (!selectedDate) {
@@ -481,7 +508,18 @@ const TourDetail = () => {
       ];
   const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
-  const bookPanel = (
+  const bookPanel = !FEATURE_SITE_PAYMENTS ? (
+    <div id="book-panel" className="card-modern p-5 scroll-mt-24">
+      <p className="text-sm text-ink/60">Listed from</p>
+      <p className="text-3xl font-extrabold text-ink">{formatLkr(tour.price)}</p>
+      <p className="text-sm text-ink/60 mb-4">{formatUsd(tour.price)} per person, paid to the guide</p>
+      <p className="text-sm text-ink/80">Sea and Tea does not take payment. Register, then message the guide to arrange the trip.</p>
+      <button type="button" onClick={contactGuide} className="btn-primary mt-4 w-full py-3 text-base inline-flex items-center justify-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        Contact guide
+      </button>
+    </div>
+  ) : (
     <div id="book-panel" className="card-modern p-5 scroll-mt-24">
       <p className="text-sm text-ink/60">From</p>
       <p className="text-3xl font-extrabold text-ink">{formatLkr(tour.price)}</p>
@@ -546,7 +584,7 @@ const TourDetail = () => {
       </button>
       <p className="text-center text-sm text-ink/60 mt-3">{tour.cancellationPolicy}</p>
     </div>
-  );
+  ));
 
   return (
     <div className="pb-24 lg:pb-16">
@@ -805,11 +843,15 @@ const TourDetail = () => {
           type="button"
           className="btn-primary"
           onClick={() => {
+            if (!FEATURE_SITE_PAYMENTS) {
+              contactGuide();
+              return;
+            }
             if (selectedDate) handleBooking();
             else document.getElementById('book-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }}
         >
-          {selectedDate ? 'Book now' : 'Check availability'}
+          {!FEATURE_SITE_PAYMENTS ? 'Contact guide' : selectedDate ? 'Book now' : 'Check availability'}
         </button>
       </div>
     </div>

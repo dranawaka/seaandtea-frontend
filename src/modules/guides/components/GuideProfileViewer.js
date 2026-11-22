@@ -493,7 +493,7 @@ const GuideProfileViewer = () => {
                   </div>
                 ) : completedBookings.length === 0 ? (
                   <p className="text-gray-600 text-sm">
-                    You can leave a review after completing a tour with this guide. Book a tour and return once it&apos;s completed.
+                    You can leave a review after completing a tour with this guide. Message the guide to arrange the trip, then return once it is completed.
                   </p>
                 ) : (
                   <form onSubmit={handleSubmitReview} className="space-y-5">

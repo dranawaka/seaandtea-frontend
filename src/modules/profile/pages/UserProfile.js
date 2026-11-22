@@ -427,7 +427,7 @@ const UserProfile = () => {
       if (guideData) {
         setMessage({ type: 'success', text: 'Guide profile updated successfully!' });
       } else {
-        setMessage({ type: 'success', text: 'Guide profile created successfully! It will be reviewed for verification within 1-2 business days.' });
+        setMessage({ type: 'success', text: 'Guide profile created. It goes live after your one-time onboarding fee is confirmed. That fee is paid directly to Sea and Tea, not on this website.' });
       }
       
       setGuideData(data);
@@ -1301,8 +1301,8 @@ const UserProfile = () => {
                                     </h3>
                                     <p className="text-sm text-gray-600">
                                       {verificationStatus === 'VERIFIED' 
-                                        ? 'Your profile is visible to travelers and you can receive bookings'
-                                        : 'Your profile is under review and will be visible once verified'
+                                        ? 'Your profile is visible. Travelers can message you to arrange a trip.'
+                                        : 'Your profile is listed after the one-time onboarding fee is confirmed. That fee is paid directly to Sea and Tea, not on this website.'
                                       }
                                     </p>
                                   </div>

@@ -4,7 +4,7 @@ import { MapPin, Star, Users, Clock, ShoppingBag, Heart, Filter, Search, ArrowRi
 import { getProducts, fetchProductsPaginatedFromApi, mapProductFromApi } from '../data/shopProducts';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { getCartApi, addCartItemApi, updateCartItemApi, removeCartItemApi } from '../../../shared/config/api';
-import { FEATURE_TOURS_ENABLED } from '../../../shared/config/features';
+import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../../../shared/config/features';
 
 const PAGE_SIZE = 12;
 
@@ -259,7 +259,7 @@ const Shop = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {FEATURE_TOURS_ENABLED && (
                 <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
-                  Book Experiences
+                  Explore experiences
                 </Link>
               )}
               <Link to="/guides" className="inline-flex items-center justify-center rounded-full border-2 border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-all duration-200">
@@ -672,9 +672,13 @@ const Shop = () => {
                     <span>${getCartTotal().toFixed(2)}</span>
                   </div>
                   <div className="space-y-3">
-                    <button className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200">
-                      Proceed to Checkout
-                    </button>
+                    {FEATURE_SITE_PAYMENTS ? (
+                      <button className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors duration-200">
+                        Proceed to Checkout
+                      </button>
+                    ) : (
+                      <p className="text-sm text-gray-600">The shop does not take payment yet. This cart is only a list of items you are considering.</p>
+                    )}
                     <button
                       onClick={() => setIsCartOpen(false)}
                       className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"

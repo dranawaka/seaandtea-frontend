@@ -4,7 +4,7 @@ import { Menu, X, Waves, Leaf, User, LogIn, LogOut, UserCircle, Settings, Plus, 
 import SearchBar from './SearchBar';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
-import { FEATURE_TOURS_ENABLED } from '../config/features';
+import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../config/features';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -105,6 +105,7 @@ const Navbar = () => {
                 <Heart className="h-5 w-5" strokeWidth={2} />
               </Link>
             )}
+            {FEATURE_SITE_PAYMENTS && (
             <Link
               to="/shop?openCart=1"
               className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-all duration-200"
@@ -112,6 +113,7 @@ const Navbar = () => {
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
             </Link>
+            )}
             {isAuthenticated ? (
               <div className="relative" ref={profileDropdownRef}>
                 <button
@@ -269,6 +271,7 @@ const Navbar = () => {
 
           {/* Mobile: cart + menu */}
           <div className="md:hidden flex items-center space-x-3">
+            {FEATURE_SITE_PAYMENTS && (
             <Link
               to="/shop?openCart=1"
               className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-800"
@@ -277,6 +280,7 @@ const Navbar = () => {
             >
               <ShoppingBag className="h-5 w-5" strokeWidth={2} />
             </Link>
+            )}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-700 hover:text-primary-600 focus:outline-none focus:text-primary-600"
