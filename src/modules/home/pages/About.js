@@ -86,14 +86,14 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="brand-hero text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+    <div className="min-h-screen bg-sand">
+      <section className="border-b border-primary-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-700 mb-3">Our story</p>
+          <h1 className="font-display text-4xl md:text-5xl font-medium text-primary-900 mb-4">
             About Sea & Tea
           </h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto text-primary-100">
+          <p className="text-lg text-ink/70 max-w-2xl mx-auto">
             To connect travelers with verified local guides for authentic, flexible, and personalized Sri Lankan experiences.
           </p>
         </div>
@@ -249,22 +249,22 @@ const About = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary-600 text-white">
+      <section className="py-16 bg-primary-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Experience Authentic Travel?
+          <h2 className="font-display text-3xl md:text-4xl font-medium mb-4">
+            Ready to experience authentic travel?
           </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Join our community of travelers and local experts, and discover the world in a whole new way.
+          <p className="text-lg text-primary-100 mb-8 max-w-2xl mx-auto">
+            Join travelers and local experts, and discover the island with the people who live here.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {FEATURE_TOURS_ENABLED && (
-              <a href="/tours" className="btn-secondary text-lg px-8 py-3">
-                Explore Tours
+              <a href="/tours" className="inline-flex items-center justify-center rounded-full bg-accent-400 hover:bg-accent-500 text-primary-900 font-semibold text-lg px-8 py-3">
+                Explore tours
               </a>
             )}
-            <a href="/contact" className="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-medium py-3 px-8 rounded-lg transition-colors duration-200 text-lg">
-              Get in Touch
+            <a href="/contact" className="inline-flex items-center justify-center rounded-full border border-white text-white hover:bg-white hover:text-primary-900 font-semibold py-3 px-8 text-lg">
+              Get in touch
             </a>
           </div>
         </div>

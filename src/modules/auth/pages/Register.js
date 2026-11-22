@@ -357,7 +357,7 @@ const Register = () => {
           <div className="flex justify-center mb-4">
             <Globe className="h-12 w-12 text-primary-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="font-display text-3xl font-medium text-primary-900">
             Join Sea & Tea
           </h2>
           <p className="mt-2 text-sm text-gray-600">

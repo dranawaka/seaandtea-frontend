@@ -258,15 +258,14 @@ const Guides = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-sand py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12 brand-hero text-white rounded-[2rem] px-6 py-14 shadow-card relative overflow-hidden">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-secondary-300 mb-3">Verified locals</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Find Your Perfect Sri Lankan Guide
+        <div className="text-center mb-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-700 mb-3">Verified locals</p>
+          <h1 className="font-display text-4xl md:text-5xl font-medium text-primary-900 mb-4">
+            Find your perfect Sri Lankan guide
           </h1>
-          <p className="text-lg md:text-xl text-primary-100 max-w-2xl mx-auto">
+          <p className="text-lg text-ink/70 max-w-2xl mx-auto">
             Connect with verified local guides from Sri Lanka. Register and message a guide to arrange a trip. Payment stays between you and the guide.
           </p>
         </div>
@@ -414,7 +413,7 @@ const Guides = () => {
                   
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center">
-                      <Star className="h-4 w-4 text-secondary-500 mr-1" />
+                      <Star className="h-4 w-4 text-accent-500 mr-1" />
                       <span className="text-sm text-gray-600">
                         {guide.rating} ({guide.reviews} reviews)
                       </span>
@@ -492,7 +491,7 @@ const Guides = () => {
                   </div>
                   
                   {/* Contact Information */}
-                  <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-primary-50 rounded-lg">
                     <div className="text-sm text-gray-600 mb-2">Contact Information:</div>
                     <div className="text-xs text-gray-700">
                       <div className="flex items-center mb-1">
@@ -509,7 +508,7 @@ const Guides = () => {
                 
                 {/* Instant Booking */}
                 <div className="flex items-center justify-center mb-4 text-sm">
-                  <div className="flex items-center text-blue-600">
+                  <div className="flex items-center text-primary-700">
                     <MessageSquare className="h-4 w-4 mr-1" />
                     <span className="font-medium">Message to arrange</span>
                   </div>

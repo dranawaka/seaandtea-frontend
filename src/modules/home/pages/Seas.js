@@ -100,17 +100,17 @@ const Seas = () => {
 
   const beachFeatures = [
     {
-      icon: <Waves className="h-8 w-8 text-blue-600" />,
+      icon: <Waves className="h-8 w-8 text-primary-700" />,
       title: 'Year-Round Paradise',
       description: 'Sri Lanka\'s strategic location offers perfect beach weather throughout the year on different coasts.'
     },
     {
-      icon: <Fish className="h-8 w-8 text-teal-600" />,
+      icon: <Fish className="h-8 w-8 text-primary-600" />,
       title: 'Marine Biodiversity',
       description: 'Home to blue whales, dolphins, sea turtles, and vibrant coral reefs in protected marine parks.'
     },
     {
-      icon: <Sunset className="h-8 w-8 text-orange-600" />,
+      icon: <Sunset className="h-8 w-8 text-accent-600" />,
       title: 'Pristine & Uncrowded',
       description: 'Experience untouched beaches with golden sand, crystal waters, and authentic local fishing communities.'
     }
@@ -138,29 +138,25 @@ const Seas = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative bg-primary-800 text-white">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Sri Lankan
-              <span className="text-primary-200"> Seas Paradise</span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-primary-200">
-              Discover pristine beaches, world-class surfing, whale watching, and vibrant coral reefs 
-              along Sri Lanka's stunning 1,600km coastline.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/guides" className="btn-secondary text-lg px-8 py-3">
-                Find Sea Guides
+    <div className="min-h-screen bg-sand">
+      <section className="border-b border-primary-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-700 mb-3">The coast</p>
+          <h1 className="font-display text-4xl md:text-5xl font-medium text-primary-900 mb-4">
+            Sri Lankan seas
+          </h1>
+          <p className="text-lg text-ink/70 max-w-2xl mx-auto">
+            Beaches, surfing, whale watching, and reefs along the island’s coast, arranged with local guides.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/guides" className="btn-primary text-lg px-8 py-3">
+              Find sea guides
+            </Link>
+            {FEATURE_TOURS_ENABLED && (
+              <Link to="/tours" className="btn-outline text-lg px-8 py-3">
+                Browse all tours
               </Link>
-              {FEATURE_TOURS_ENABLED && (
-                <Link to="/tours" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
-                  Browse All Tours
-                </Link>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -405,22 +401,21 @@ const Seas = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary-800 text-white">
+      <section className="py-16 bg-primary-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready for Your Sea Adventure?
+          <h2 className="font-display text-3xl md:text-4xl font-medium mb-4">
+            Ready for the coast?
           </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto text-primary-200">
-            Book your perfect Sri Lankan beach experience today and discover why our coastline 
-            is considered among the world's most beautiful.
+          <p className="text-lg text-primary-100 mb-8 max-w-2xl mx-auto">
+            Book a beach day with a local guide and see the island from the water.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/guides" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
-              Find Sea Guides
+            <Link to="/guides" className="inline-flex items-center justify-center rounded-full bg-accent-400 hover:bg-accent-500 text-primary-900 font-semibold text-lg px-8 py-3">
+              Find sea guides
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link to="/contact" className="btn-outline text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary-800">
-              Custom Sea Tour
+            <Link to="/contact" className="inline-flex items-center justify-center rounded-full border border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900">
+              Custom sea tour
             </Link>
           </div>
         </div>

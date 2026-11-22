@@ -243,29 +243,23 @@ const Shop = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative brand-hero text-white">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Sri Lankan
-              <span className="text-secondary-300"> Shop</span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Discover authentic Sri Lankan products, from premium Ceylon tea to handcrafted souvenirs, 
-              delivered directly to your home.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {FEATURE_TOURS_ENABLED && (
-                <Link to="/tours" className="btn-secondary text-lg px-8 py-3">
-                  Explore experiences
-                </Link>
-              )}
-              <Link to="/guides" className="inline-flex items-center justify-center rounded-full border-2 border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-all duration-200">
-                Find Local Guides
+    <div className="min-h-screen bg-sand">
+      <section className="border-b border-primary-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-700 mb-3">The shop</p>
+          <h1 className="font-display text-4xl md:text-5xl font-medium text-primary-900 mb-4">Sri Lankan shop</h1>
+          <p className="text-lg text-ink/70 max-w-2xl mx-auto">
+            Discover authentic Sri Lankan products, from premium Ceylon tea to handcrafted souvenirs, delivered directly to your home.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            {FEATURE_TOURS_ENABLED && (
+              <Link to="/tours" className="btn-primary text-lg px-8 py-3">
+                Explore experiences
               </Link>
-            </div>
+            )}
+            <Link to="/guides" className="btn-outline text-lg px-8 py-3">
+              Find local guides
+            </Link>
           </div>
         </div>
       </section>
@@ -274,8 +268,8 @@ const Shop = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Shop With Us?
+            <h2 className="font-display text-3xl md:text-4xl font-medium text-primary-900 mb-4">
+              Why shop with us?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               We bring the best of Sri Lanka directly to you with authentic products and exceptional service
@@ -304,7 +298,7 @@ const Shop = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="font-display text-3xl md:text-4xl font-medium text-primary-900 mb-4">
               Collections
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -560,24 +554,23 @@ const Shop = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 brand-hero text-white">
+      <section className="py-16 bg-primary-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Experience Sri Lanka?
+          <h2 className="font-display text-3xl md:text-4xl font-medium mb-4">
+            Ready to experience Sri Lanka?
           </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Shop authentic products or book unforgettable experiences with our local guides. 
-            Discover the magic of Sri Lanka today.
+          <p className="text-lg text-primary-100 mb-8 max-w-2xl mx-auto">
+            Shop authentic products or book unforgettable experiences with local guides.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {FEATURE_TOURS_ENABLED && (
-              <Link to="/tours" className="btn-secondary text-lg px-8 py-3 flex items-center justify-center">
-                Browse Tours
+              <Link to="/tours" className="inline-flex items-center justify-center rounded-full bg-accent-400 hover:bg-accent-500 text-primary-900 font-semibold text-lg px-8 py-3">
+                Browse tours
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             )}
-            <Link to="/contact" className="inline-flex items-center justify-center rounded-full border-2 border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-all duration-200">
-              Contact Us
+            <Link to="/contact" className="inline-flex items-center justify-center rounded-full border border-white text-lg px-8 py-3 text-white hover:bg-white hover:text-primary-900 transition-colors">
+              Contact us
             </Link>
           </div>
         </div>

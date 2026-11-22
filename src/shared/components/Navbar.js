@@ -67,7 +67,7 @@ const Navbar = () => {
             <img
               src="/images/logo.png"
               alt="Sea & Tea"
-              className="h-11 w-auto sm:h-12"
+              className="h-12 w-auto sm:h-14"
             />
           </Link>
 

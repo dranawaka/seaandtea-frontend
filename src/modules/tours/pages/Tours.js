@@ -102,7 +102,7 @@ const Tours = () => {
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold text-ink">
+          <h1 className="font-display text-3xl md:text-4xl font-medium text-primary-900">
             {destination || q || 'Experiences in Sri Lanka'}
           </h1>
           <p className="text-ink/70 mt-1">{loading ? 'Looking for tours…' : `${total} experiences`}</p>
