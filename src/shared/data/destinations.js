@@ -6,12 +6,18 @@ const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=
 /** Galle Face promenade and the Colombo skyline. Sigiriya's rock photo was reused here by mistake. */
 const COLOMBO_IMAGE = 'https://images.pexels.com/photos/20711999/pexels-photo-20711999.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=900&q=80';
 
+/** Temple of the Sacred Tooth Relic, Kandy. The previous photo was a resort pool. */
+const KANDY_IMAGE = '/images/slider/kandy-temple.jpg';
+
+/** Tea pluckers above Nuwara Eliya. The previous photo was the Hawa Mahal in Jaipur. */
+const NUWARA_ELIYA_IMAGE = '/images/slider/tea-nuwara-eliya.jpg';
+
 export const DESTINATIONS = [
   { slug: 'colombo', name: 'Colombo', image: COLOMBO_IMAGE },
-  { slug: 'kandy', name: 'Kandy', image: photo('photo-1546708973-b339540b5162') },
+  { slug: 'kandy', name: 'Kandy', image: KANDY_IMAGE },
   { slug: 'sigiriya', name: 'Sigiriya', image: photo('photo-1588598198321-9735fd52455b') },
   { slug: 'ella', name: 'Ella', image: photo('photo-1566296314736-6eaac1ca0cb9') },
-  { slug: 'nuwara-eliya', name: 'Nuwara Eliya', image: photo('photo-1477587458883-47145ed94245') },
+  { slug: 'nuwara-eliya', name: 'Nuwara Eliya', image: NUWARA_ELIYA_IMAGE },
   { slug: 'galle', name: 'Galle', image: photo('photo-1544551763-46a013bb70d5') },
   { slug: 'mirissa', name: 'Mirissa', image: photo('photo-1507525428034-b723cf961d3e') },
   { slug: 'bentota', name: 'Bentota', image: photo('photo-1519046904884-53103b34b206') },
@@ -23,14 +29,14 @@ export const DESTINATIONS = [
 
 export const REGIONS = [
   { slug: 'colombo', name: 'Colombo', image: COLOMBO_IMAGE, destinations: ['Colombo'] },
-  { slug: 'kandy', name: 'Kandy', image: photo('photo-1546708973-b339540b5162'), destinations: ['Kandy'] },
+  { slug: 'kandy', name: 'Kandy', image: KANDY_IMAGE, destinations: ['Kandy'] },
   { slug: 'ella-tea-country', name: 'Ella & Tea Country', image: photo('photo-1566296314736-6eaac1ca0cb9'), destinations: ['Ella', 'Nuwara Eliya'] },
   { slug: 'galle-south-coast', name: 'Galle & South Coast', image: photo('photo-1544551763-46a013bb70d5'), destinations: ['Galle', 'Mirissa', 'Bentota'] },
   { slug: 'sigiriya-cultural-triangle', name: 'Sigiriya & Cultural Triangle', image: photo('photo-1588598198321-9735fd52455b'), destinations: ['Sigiriya'] },
   { slug: 'yala-wilpattu', name: 'Yala / Wilpattu', image: photo('photo-1549366021-9f761d450615'), destinations: ['Yala', 'Wilpattu'] },
   { slug: 'trincomalee-east-coast', name: 'Trincomalee / East Coast', image: photo('photo-1559827260-dc66d52bef19'), destinations: ['Trincomalee'] },
   { slug: 'negombo', name: 'Negombo', image: photo('photo-1500375592092-40eb2168fd21'), destinations: ['Negombo'] },
-  { slug: 'nuwara-eliya', name: 'Nuwara Eliya', image: photo('photo-1477587458883-47145ed94245'), destinations: ['Nuwara Eliya'] }
+  { slug: 'nuwara-eliya', name: 'Nuwara Eliya', image: NUWARA_ELIYA_IMAGE, destinations: ['Nuwara Eliya'] }
 ];
 
 export const TOUR_CATEGORIES = [
