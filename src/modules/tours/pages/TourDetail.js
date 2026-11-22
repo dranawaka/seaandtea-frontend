@@ -584,7 +584,7 @@ const TourDetail = () => {
       </button>
       <p className="text-center text-sm text-ink/60 mt-3">{tour.cancellationPolicy}</p>
     </div>
-  ));
+  );
 
   return (
     <div className="pb-24 lg:pb-16">
