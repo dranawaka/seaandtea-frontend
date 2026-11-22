@@ -40,8 +40,8 @@ export const REGIONS = [
 ];
 
 export const TOUR_CATEGORIES = [
-  { value: 'TEA_TOURS', label: 'Tea & Nature' },
-  { value: 'BEACH_TOURS', label: 'Beach & Water' },
+  { value: 'BEACH_TOURS', label: 'Sea & Nature' },
+  { value: 'TEA_TOURS', label: 'Tea & Water' },
   { value: 'WILDLIFE_TOURS', label: 'Wildlife' },
   { value: 'CULTURAL_TOURS', label: 'Culture & Temples' },
   { value: 'FOOD_TOURS', label: 'Food & Cooking' },

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Source+Sans+3:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,7 +9,7 @@
   }
   
   body {
-    font-family: 'Nunito', system-ui, sans-serif;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
     @apply bg-sand text-ink;
   }
   
@@ -20,7 +20,7 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-accent-500 hover:bg-accent-600 text-white font-semibold py-2.5 px-6 rounded-full shadow-card hover:shadow-card-hover transition-all duration-200 ease-out;
+    @apply bg-primary-800 hover:bg-primary-700 text-white font-semibold py-2.5 px-6 rounded-full shadow-card hover:shadow-card-hover transition-all duration-200 ease-out;
   }
   
   .btn-secondary {
@@ -63,12 +63,21 @@
   }
 
   .brand-hero {
-    background-color: #0A6E6E;
-    background-image: linear-gradient(155deg, #043636 0%, #0A6E6E 58%, #1C5534 100%);
+    background-color: #0B2A6E;
+    background-image: none;
   }
 
   .font-display {
-    font-family: 'Nunito', system-ui, sans-serif;
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .hero-date::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    width: 2.5rem;
+    height: 100%;
+    cursor: pointer;
   }
 }
 

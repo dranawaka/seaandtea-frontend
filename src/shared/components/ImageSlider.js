@@ -101,7 +101,7 @@ const ImageSlider = ({ variant = 'card', children }) => {
   return (
     <div
       className={hero
-        ? 'relative w-full min-h-[560px] md:min-h-[640px] overflow-hidden text-white'
+        ? 'relative w-full min-h-[620px] md:min-h-[720px] overflow-hidden text-white'
         : 'image-slider-container relative w-full h-[560px] md:h-[640px] overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-primary-900/10'}
       role="region"
       aria-roledescription="carousel"
@@ -125,15 +125,21 @@ const ImageSlider = ({ variant = 'card', children }) => {
             <img
               src={item.image}
               alt={item.title || 'Sri Lanka'}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${hero ? 'object-[center_40%]' : ''}`}
             />
           </div>
         ))}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-900/55 to-primary-900/20" />
+        <div
+          className={hero ? 'absolute inset-0' : 'absolute inset-0 bg-primary-900/75'}
+          style={hero ? {
+            background: 'linear-gradient(90deg, rgba(8, 18, 32, 0.78) 0%, rgba(8, 18, 32, 0.55) 28%, rgba(8, 18, 32, 0.18) 52%, rgba(8, 18, 32, 0.08) 100%)'
+          } : undefined}
+        />
+        {hero && <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/35 to-transparent" />}
       </div>
 
       {children ? (
-        <div className="relative z-10 flex items-center min-h-[560px] md:min-h-[640px] pb-16">
+        <div className="relative z-10 flex items-center min-h-[620px] md:min-h-[720px] pb-28">
           {children}
         </div>
       ) : (
@@ -163,7 +169,7 @@ const ImageSlider = ({ variant = 'card', children }) => {
         </div>
       )}
 
-      {slides.length > 1 && (
+      {slides.length > 1 && !hero && (
         <>
           <button
             type="button"
@@ -184,6 +190,7 @@ const ImageSlider = ({ variant = 'card', children }) => {
         </>
       )}
 
+      {!hero && (
       <button
         type="button"
         onClick={() => setIsPlaying((value) => !value)}
@@ -192,15 +199,16 @@ const ImageSlider = ({ variant = 'card', children }) => {
       >
         {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
       </button>
+      )}
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+      <div className={`absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 ${hero ? 'bottom-20' : 'bottom-6'}`}>
         {slides.map((item, index) => (
           <button
             key={item.id}
             type="button"
             onClick={() => goToSlide(index)}
-            className={`indicator-dot h-2.5 rounded-full transition-all duration-300 ${
-              index === currentSlide ? 'w-8 bg-secondary-300' : 'w-2.5 bg-white/55 hover:bg-white'
+            className={`indicator-dot rounded-full transition-all duration-300 ${
+              index === currentSlide ? 'h-2.5 w-2.5 bg-accent-300' : 'h-2 w-2 bg-white/80 hover:bg-white'
             }`}
             aria-label={`Go to slide ${index + 1}${item.title ? `: ${item.title}` : ''}`}
             aria-current={index === currentSlide ? 'true' : undefined}
@@ -208,15 +216,17 @@ const ImageSlider = ({ variant = 'card', children }) => {
         ))}
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 z-20">
-        {playing && (
-          <div
-            key={currentSlide}
-            className="h-full bg-secondary-400"
-            style={{ animation: `progress ${AUTOPLAY_MS}ms linear forwards` }}
-          />
-        )}
-      </div>
+      {!hero && (
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 z-20">
+          {playing && (
+            <div
+              key={currentSlide}
+              className="h-full bg-accent-400"
+              style={{ animation: `progress ${AUTOPLAY_MS}ms linear forwards` }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };

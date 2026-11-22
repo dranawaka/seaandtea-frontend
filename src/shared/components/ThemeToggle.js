@@ -10,7 +10,7 @@ const ThemeToggle = () => {
     <button
       type="button"
       onClick={toggleTheme}
-      className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-colors duration-200"
+      className="flex items-center justify-center w-9 h-9 text-primary-800 hover:text-primary-600 transition-colors duration-200"
       aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       aria-pressed={isDark}
       title={isDark ? 'Light theme' : 'Dark theme'}

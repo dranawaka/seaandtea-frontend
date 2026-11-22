@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#F7F3EC" />
+    <meta name="theme-color" content="#F7F8FA" />
     <script>
       (function () {
         try {
@@ -16,7 +16,7 @@
           root.classList.toggle('dark', theme === 'dark');
           root.style.colorScheme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0E1818' : '#F7F3EC');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0B1220' : '#F7F8FA');
         } catch (e) {}
       })();
     </script>

@@ -1,18 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Menu, X, User, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
 import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../config/features';
+import { TOUR_CATEGORIES } from '../data/destinations';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const { isAuthenticated, user, token, logout } = useAuth();
+  const location = useLocation();
   const profileDropdownRef = useRef(null);
+  const exploreRef = useRef(null);
+  const exploreActive = location.pathname.startsWith('/tours')
+    || location.pathname.startsWith('/tour')
+    || location.pathname.startsWith('/destinations');
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -25,7 +32,6 @@ const Navbar = () => {
   }, [isAuthenticated, token]);
 
   const navigation = [
-    ...(FEATURE_TOURS_ENABLED ? [{ name: 'Explore', href: '/tours' }] : [{ name: 'Home', href: '/' }]),
     { name: 'Guides', href: '/guides' },
     { name: 'Shop', href: '/shop' },
   ];
@@ -35,6 +41,9 @@ const Navbar = () => {
     const handleClickOutside = (event) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setIsProfileDropdownOpen(false);
+      }
+      if (exploreRef.current && !exploreRef.current.contains(event.target)) {
+        setExploreOpen(false);
       }
     };
 
@@ -51,37 +60,82 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-primary-100/80 bg-sand/90 backdrop-blur-xl shadow-[0_10px_30px_-22px_rgba(10,110,110,0.45)]">
+    <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center gap-4 py-2">
-          {/* Logo */}
+        <div className="flex justify-between items-center gap-3 py-2.5">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Sea & Tea home">
             <img
               src="/images/logo.png"
               alt="Sea & Tea"
-              className="h-24 w-auto sm:h-28"
+              className="h-11 w-auto sm:h-12"
             />
           </Link>
 
           {FEATURE_TOURS_ENABLED && (
-            <div className="hidden lg:block flex-1 max-w-xl mx-6">
+            <div className="hidden lg:block flex-1 max-w-md mx-4">
               <SearchBar />
             </div>
           )}
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-4 flex items-center space-x-1">
+            <div className="ml-2 flex items-center">
+              {FEATURE_TOURS_ENABLED ? (
+                <div className="relative" ref={exploreRef}>
+                  <button
+                    type="button"
+                    onClick={() => setExploreOpen((open) => !open)}
+                    className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-semibold ${
+                      exploreActive || exploreOpen ? 'text-primary-900' : 'text-primary-700 hover:text-primary-900'
+                    }`}
+                    aria-expanded={exploreOpen}
+                    aria-haspopup="true"
+                  >
+                    Explore
+                    <ChevronDown className={`h-4 w-4 transition-transform ${exploreOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {exploreOpen && (
+                    <div className="absolute left-0 mt-2 w-56 rounded-2xl border border-gray-100 bg-white py-2 shadow-xl z-50">
+                      <Link
+                        to="/tours"
+                        className="block px-4 py-2.5 text-sm font-semibold text-primary-900 hover:bg-sand"
+                        onClick={() => setExploreOpen(false)}
+                      >
+                        All experiences
+                      </Link>
+                      {TOUR_CATEGORIES.map((category) => (
+                        <Link
+                          key={category.value}
+                          to={`/tours?category=${category.value}`}
+                          className="block px-4 py-2 text-sm text-primary-800 hover:bg-sand"
+                          onClick={() => setExploreOpen(false)}
+                        >
+                          {category.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <NavLink
+                  to="/"
+                  end
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-semibold ${isActive ? 'text-primary-900' : 'text-primary-700 hover:text-primary-900'}`
+                  }
+                >
+                  Home
+                </NavLink>
+              )}
               {navigation.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}
-                  end={item.href === '/'}
                   className={({ isActive }) =>
-                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                    `px-3 py-2 text-sm font-semibold transition-colors duration-200 ${
                       isActive
-                        ? 'bg-primary-800 dark:bg-primary-500 text-white shadow-md shadow-primary-900/20'
-                        : 'text-stone-700 hover:text-primary-800 hover:bg-primary-50'
+                        ? 'text-primary-900'
+                        : 'text-primary-700 hover:text-primary-900'
                     }`
                   }
                 >
@@ -94,22 +148,23 @@ const Navbar = () => {
           {/* Auth Buttons + Cart */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
+            <span className="hidden lg:block h-6 w-px bg-gray-200" aria-hidden="true" />
             {FEATURE_TOURS_ENABLED && (
               <Link
                 to="/wishlist"
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-all duration-200"
+                className="flex items-center justify-center w-9 h-9 text-primary-800 hover:text-primary-600 transition-colors"
                 aria-label="Wishlist"
               >
-                <Heart className="h-5 w-5" strokeWidth={2} />
+                <Heart className="h-5 w-5" strokeWidth={1.75} />
               </Link>
             )}
             {FEATURE_SITE_PAYMENTS && (
             <Link
               to="/shop?openCart=1"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 hover:bg-secondary-300 text-primary-800 transition-all duration-200"
+              className="flex items-center justify-center w-9 h-9 text-primary-800 hover:text-primary-600 transition-colors"
               aria-label="Shopping cart"
             >
-              <ShoppingBag className="h-5 w-5" strokeWidth={2} />
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
             </Link>
             )}
             {isAuthenticated ? (
@@ -251,16 +306,16 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-primary-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:bg-gray-100"
+                  className="inline-flex items-center text-primary-800 hover:text-primary-600 px-2 py-2 text-sm font-semibold"
                 >
-                  <LogIn className="h-5 w-5 inline mr-1.5" />
+                  <User className="h-4 w-4 mr-1.5" />
                   Login
                 </Link>
                 <Link
                   to="/register"
-                  className="btn-primary"
+                  className="btn-primary inline-flex items-center text-sm py-2 px-4"
                 >
-                  <User className="h-5 w-5 inline mr-1.5" />
+                  <User className="h-4 w-4 mr-1.5" />
                   Sign Up
                 </Link>
               </>
@@ -273,7 +328,7 @@ const Navbar = () => {
             {FEATURE_SITE_PAYMENTS && (
             <Link
               to="/shop?openCart=1"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-800"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-primary-800"
               aria-label="Shopping cart"
               onClick={() => setIsOpen(false)}
             >
@@ -300,6 +355,23 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden animate-fade-in">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 glass border-t border-white/20 backdrop-blur-xl">
+            {FEATURE_TOURS_ENABLED ? (
+              <Link
+                to="/tours"
+                className="text-gray-700 hover:text-primary-600 block px-4 py-3 rounded-xl text-base font-semibold"
+                onClick={() => setIsOpen(false)}
+              >
+                Explore
+              </Link>
+            ) : (
+              <Link
+                to="/"
+                className="text-gray-700 hover:text-primary-600 block px-4 py-3 rounded-xl text-base font-semibold"
+                onClick={() => setIsOpen(false)}
+              >
+                Home
+              </Link>
+            )}
             {navigation.map((item) => (
               <Link
                 key={item.name}
