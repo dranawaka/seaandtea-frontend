@@ -3,10 +3,11 @@ module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        sand: '#F7F3EC',
+        sand: 'rgb(var(--sand) / <alpha-value>)',
         ink: '#1A2B2B',
         primary: {
           50: '#F3FAFA',

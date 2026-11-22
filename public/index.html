@@ -4,7 +4,22 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0A6E6E" />
+    <meta name="theme-color" content="#F7F3EC" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('seaandtea-theme');
+          var theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          var root = document.documentElement;
+          root.classList.toggle('dark', theme === 'dark');
+          root.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0E1818' : '#F7F3EC');
+        } catch (e) {}
+      })();
+    </script>
     <meta
       name="description"
       content="Discover Sri Lanka through sea, tea, and local experiences."

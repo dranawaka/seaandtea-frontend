@@ -11,7 +11,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-2">
-            <Link to="/" className="inline-block mb-6 rounded-2xl bg-white px-4 py-3" aria-label="Sea & Tea home">
+            <Link to="/" className="keep-light inline-block mb-6 rounded-2xl bg-white px-4 py-3" aria-label="Sea & Tea home">
               <img src="/images/logo.png" alt="Sea & Tea" className="h-28 w-auto" />
             </Link>
             <p className="text-primary-100 mb-6 max-w-md leading-relaxed">

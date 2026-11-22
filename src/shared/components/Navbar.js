@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Menu, X, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
 import SearchBar from './SearchBar';
+import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
 import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../config/features';
@@ -79,7 +80,7 @@ const Navbar = () => {
                   className={({ isActive }) =>
                     `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
                       isActive
-                        ? 'bg-primary-800 text-white shadow-md shadow-primary-900/20'
+                        ? 'bg-primary-800 dark:bg-primary-500 text-white shadow-md shadow-primary-900/20'
                         : 'text-stone-700 hover:text-primary-800 hover:bg-primary-50'
                     }`
                   }
@@ -92,6 +93,7 @@ const Navbar = () => {
 
           {/* Auth Buttons + Cart */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
             {FEATURE_TOURS_ENABLED && (
               <Link
                 to="/wishlist"
@@ -267,6 +269,7 @@ const Navbar = () => {
 
           {/* Mobile: cart + menu */}
           <div className="md:hidden flex items-center space-x-3">
+            <ThemeToggle />
             {FEATURE_SITE_PAYMENTS && (
             <Link
               to="/shop?openCart=1"

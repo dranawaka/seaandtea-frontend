@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { FEATURE_TOURS_ENABLED } from '../shared/config/features';
 import { AuthProvider } from '../shared/context/AuthContext';
+import { ThemeProvider } from '../shared/context/ThemeContext';
 import Navbar from '../shared/components/Navbar';
 import Footer from '../shared/components/Footer';
 import { Home, About, Contact } from '../modules/home';
@@ -18,8 +19,9 @@ import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
         <div className="App min-h-screen flex flex-col">
           <Navbar />
           <main className="flex-grow">
@@ -55,8 +57,9 @@ function App() {
           </main>
           <Footer />
         </div>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
