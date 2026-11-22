@@ -18,8 +18,8 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid gap-10 md:grid-cols-12">
           <div className="md:col-span-5">
-            <Link to="/" className="keep-light inline-block rounded-2xl bg-white px-3 py-2" aria-label="Sea & Tea home">
-              <img src="/images/logo.png" alt="Sea & Tea" className="h-20 w-auto" />
+            <Link to="/" className="inline-block" aria-label="Sea & Tea home">
+              <img src="/images/logo-on-dark.png" alt="Sea & Tea" className="h-16 w-auto sm:h-20" />
             </Link>
             <p className="mt-5 max-w-sm text-primary-100 leading-relaxed">
               Discover Sri Lanka through sea, tea, and local experiences. Tours with operators on the island, from tea country to the coast.

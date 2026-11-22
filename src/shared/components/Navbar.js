@@ -67,7 +67,12 @@ const Navbar = () => {
             <img
               src="/images/logo.png"
               alt="Sea & Tea"
-              className="h-12 w-auto sm:h-14"
+              className="h-12 w-auto sm:h-14 dark:hidden"
+            />
+            <img
+              src="/images/logo-on-dark.png"
+              alt=""
+              className="hidden h-12 w-auto sm:h-14 dark:block"
             />
           </Link>
 
