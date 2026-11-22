@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Waves, Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { FEATURE_TOURS_ENABLED } from '../config/features';
 
 const Footer = () => {
@@ -11,15 +11,9 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-2">
-            <div className="flex items-center mb-6">
-              <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <Waves className="h-6 w-6 text-white" />
-                <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary-400">
-                  <Leaf className="h-3 w-3 text-white" />
-                </span>
-              </span>
-              <span className="ml-3 font-display text-3xl font-extrabold text-white">Sea and Tea</span>
-            </div>
+            <Link to="/" className="inline-block mb-6 rounded-2xl bg-white px-4 py-3" aria-label="Sea & Tea home">
+              <img src="/images/logo.png" alt="Sea & Tea" className="h-28 w-auto" />
+            </Link>
             <p className="text-primary-100 mb-6 max-w-md leading-relaxed">
               Discover Sri Lanka through sea, tea, and local experiences. Tours with operators on the island, from tea country to the coast.
             </p>

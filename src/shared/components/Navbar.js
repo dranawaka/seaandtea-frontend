@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, Waves, Leaf, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
+import { Menu, X, User, LogIn, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
 import SearchBar from './SearchBar';
 import { useAuth } from '../context/AuthContext';
 import { getUnreadCountApi } from '../config/api';
@@ -52,18 +52,14 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 border-b border-primary-100/80 bg-sand/90 backdrop-blur-xl shadow-[0_10px_30px_-22px_rgba(10,110,110,0.45)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center gap-4 py-2">
           {/* Logo */}
-          <Link to="/" className="flex items-center group">
-            <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-600 shadow-md shadow-primary-700/30">
-              <Waves className="h-5 w-5 text-white" />
-              <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary-500 ring-2 ring-sand">
-                <Leaf className="h-3 w-3 text-white" />
-              </span>
-            </span>
-            <span className="ml-3 font-display text-xl sm:text-2xl font-extrabold tracking-tight text-ink">
-              Sea and Tea
-            </span>
+          <Link to="/" className="flex shrink-0 items-center" aria-label="Sea & Tea home">
+            <img
+              src="/images/logo.png"
+              alt="Sea & Tea"
+              className="h-24 w-auto sm:h-28"
+            />
           </Link>
 
           {FEATURE_TOURS_ENABLED && (
