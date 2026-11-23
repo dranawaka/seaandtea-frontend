@@ -23,6 +23,12 @@ const GuideProfileViewer = () => {
   const [reviewError, setReviewError] = useState(null);
 
   const loadGuideProfile = useCallback(async () => {
+    if (!/^\d+$/.test(String(id || ''))) {
+      setGuideData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);

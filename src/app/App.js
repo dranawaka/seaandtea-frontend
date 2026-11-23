@@ -6,12 +6,12 @@ import { ThemeProvider } from '../shared/context/ThemeContext';
 import Navbar from '../shared/components/Navbar';
 import Footer from '../shared/components/Footer';
 import { Home, About, Contact } from '../modules/home';
-import { Guides, GuideProfileViewer } from '../modules/guides';
+import { Guides, GuideProfileViewer, GuideDashboardPage } from '../modules/guides';
 import { Tours, GuideTours, CreateTour, TourDetail, Destination, Wishlist, Checkout } from '../modules/tours';
 import { Shop } from '../modules/shop';
 import { UserProfile } from '../modules/profile';
 import { Login, Register, OAuthCallback } from '../modules/auth';
-import { AdminDashboard, AdminEditGuide, AdminEditProduct, AdminNewsEdit } from '../modules/admin';
+import { AdminDashboard, AdminEditGuide, AdminEditProduct, AdminNewsEdit, AdminGuides, AdminUsers, AdminBookings } from '../modules/admin';
 import { NewsPostDetail } from '../modules/news';
 import { SitemapGenerator } from '../modules/seo';
 import { Messages } from '../modules/messages';
@@ -34,6 +34,8 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/profile" element={<UserProfile />} />
               <Route path="/guide-profile" element={<UserProfile />} />
+              <Route path="/guide/dashboard" element={<GuideDashboardPage />} />
+              <Route path="/guide/tours" element={FEATURE_TOURS_ENABLED ? <GuideTours /> : <Navigate to="/" replace />} />
               <Route path="/guide-tours" element={FEATURE_TOURS_ENABLED ? <GuideTours /> : <Navigate to="/" replace />} />
               <Route path="/create-tour" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
               <Route path="/edit-tour/:id" element={FEATURE_TOURS_ENABLED ? <CreateTour /> : <Navigate to="/" replace />} />
@@ -43,6 +45,9 @@ function App() {
               <Route path="/checkout/:bookingId" element={FEATURE_TOURS_ENABLED ? <Checkout /> : <Navigate to="/" replace />} />
               <Route path="/guide/:id" element={<GuideProfileViewer />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/guides" element={<AdminGuides />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/bookings" element={<AdminBookings />} />
               <Route path="/admin/guide/:id/edit" element={<AdminEditGuide />} />
               <Route path="/admin/product/new" element={<AdminEditProduct />} />
               <Route path="/admin/product/:id/edit" element={<AdminEditProduct />} />

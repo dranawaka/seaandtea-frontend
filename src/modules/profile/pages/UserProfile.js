@@ -15,8 +15,10 @@ const UserProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
-  // Guide profile state
+  // Guide profile state. idle/loading/found/missing/error — missing is the only state that offers a new profile.
   const [guideData, setGuideData] = useState(null);
+  const [guideProfileState, setGuideProfileState] = useState('idle');
+  const [guideProfileError, setGuideProfileError] = useState('');
   const [verificationStatus, setVerificationStatus] = useState(null);
   
   const [profileData, setProfileData] = useState({
@@ -65,11 +67,11 @@ const UserProfile = () => {
       });
       
       // Load guide profile if user is a guide
-      if (user.role === 'GUIDE') {
+      if (user.role === 'GUIDE' && token) {
         loadGuideProfile();
       }
     }
-  }, [user]);
+  }, [user, token]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -79,14 +81,39 @@ const UserProfile = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  // Load guide profile from backend
+  const applyGuideProfile = (data) => {
+    setGuideData(data);
+    setGuideProfileError('');
+    setGuideProfileState('found');
+    setVerificationStatus(data.verificationStatus || 'PENDING');
+    setGuideFormData({
+      bio: data.bio || '',
+      hourlyRate: data.hourlyRate || data.rate?.hourly || '',
+      dailyRate: data.dailyRate || data.rate?.daily || '',
+      responseTimeHours: data.responseTimeHours || data.responseTime || 24,
+      isAvailable: data.isAvailable !== false,
+      specialties: Array.isArray(data.specialties) ? data.specialties.map(s => typeof s === 'string' ? s : s.specialty || '').filter(Boolean) : [],
+      languages: Array.isArray(data.languages) ? data.languages.map(l => typeof l === 'string' ? l : l.language || '').filter(Boolean) : []
+    });
+  };
+
+  const emptyGuideForm = () => ({
+    bio: '',
+    hourlyRate: '',
+    dailyRate: '',
+    responseTimeHours: 24,
+    isAvailable: true,
+    specialties: ['Cultural Tours'],
+    languages: ['English']
+  });
+
+  // The exists endpoint already returns the full profile. A failed follow-up request must not look like "no profile".
   const loadGuideProfile = async () => {
+    if (!token) return;
+    setGuideProfileState('loading');
+    setGuideProfileError('');
     try {
-      setIsLoading(true);
-      
-      // First, check if the user has a guide profile
       const existsUrl = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.PROFILE_EXISTS);
-      
       const existsResponse = await fetch(existsUrl, {
         method: 'GET',
         headers: {
@@ -95,58 +122,31 @@ const UserProfile = () => {
         }
       });
 
-      if (existsResponse.ok) {
-        const existsData = await existsResponse.json();
-        
-        // Check if profile exists - handle different response structures
-        const profileExists = existsData.exists === true || existsData.guideId || existsData.id;
-        const guideId = existsData.guideId || existsData.id;
-        
-        if (profileExists && guideId) {
-          // Profile exists, load it
-          const profileUrl = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DETAIL.replace(':id', guideId));
-          
-          const profileResponse = await fetch(profileUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (profileResponse.ok) {
-            const data = await profileResponse.json();
-            setGuideData(data);
-            setVerificationStatus(data.verificationStatus || 'PENDING');
-            
-            // Map backend data to frontend state
-            setGuideFormData({
-              bio: data.bio || '',
-              hourlyRate: data.hourlyRate || data.rate?.hourly || '',
-              dailyRate: data.dailyRate || data.rate?.daily || '',
-              responseTimeHours: data.responseTimeHours || data.responseTime || 24,
-              isAvailable: data.isAvailable !== false,
-              specialties: Array.isArray(data.specialties) ? data.specialties.map(s => typeof s === 'string' ? s : s.specialty || '').filter(Boolean) : [],
-              languages: Array.isArray(data.languages) ? data.languages.map(l => typeof l === 'string' ? l : l.language || '').filter(Boolean) : []
-            });
-          }
-        } else {
-          // Profile doesn't exist, set default values
-          setGuideFormData({
-            bio: '',
-            hourlyRate: '',
-            dailyRate: '',
-            responseTimeHours: 24,
-            isAvailable: true,
-            specialties: ['Cultural Tours'],
-            languages: ['English']
-          });
-        }
+      if (existsResponse.status === 404) {
+        setGuideData(null);
+        setGuideProfileState('missing');
+        setGuideFormData(emptyGuideForm());
+        return;
       }
+
+      if (!existsResponse.ok) {
+        setGuideProfileState('error');
+        setGuideProfileError('We could not load your guide profile. Refresh this page before creating a new one.');
+        return;
+      }
+
+      const existsData = await existsResponse.json();
+      if (existsData && (existsData.id || existsData.guideId)) {
+        applyGuideProfile(existsData);
+        return;
+      }
+
+      setGuideProfileState('error');
+      setGuideProfileError('We could not load your guide profile. Refresh this page before creating a new one.');
     } catch (error) {
       console.error('Error loading guide profile:', error);
-    } finally {
-      setIsLoading(false);
+      setGuideProfileState('error');
+      setGuideProfileError('We could not load your guide profile. Refresh this page before creating a new one.');
     }
   };
 
@@ -398,15 +398,33 @@ const UserProfile = () => {
         }))
       };
 
-      let url, method;
-      if (guideData && guideData.id) {
-        // Update existing profile
-        url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.UPDATE.replace(':id', guideData.id));
-        method = 'PUT';
-      } else {
-        // Create new profile
-        url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.CREATE);
-        method = 'POST';
+      let url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.MY_PROFILE);
+      let method = 'PUT';
+      if (!(guideData && guideData.id)) {
+        const existsUrl = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.PROFILE_EXISTS);
+        const existsResponse = await fetch(existsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (existsResponse.ok) {
+          const existing = await existsResponse.json();
+          if (existing?.id) {
+            applyGuideProfile(existing);
+            url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.MY_PROFILE);
+            method = 'PUT';
+          } else {
+            url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.CREATE);
+            method = 'POST';
+          }
+        } else if (existsResponse.status === 404) {
+          url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.CREATE);
+          method = 'POST';
+        } else {
+          throw new Error('We could not confirm your guide profile. Refresh this page before creating a new one.');
+        }
       }
 
       const response = await fetch(url, {
@@ -421,17 +439,20 @@ const UserProfile = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 409) {
+          await loadGuideProfile();
+          setIsEditing(false);
+        }
         throw new Error(data.message || 'Failed to save guide profile');
       }
 
-      if (guideData) {
+      if (method === 'PUT') {
         setMessage({ type: 'success', text: 'Guide profile updated successfully!' });
       } else {
         setMessage({ type: 'success', text: 'Guide profile created. It goes live after your one-time onboarding fee is confirmed. That fee is paid directly to Sea and Tea, not on this website.' });
       }
       
-      setGuideData(data);
-      setVerificationStatus(data.verificationStatus || 'PENDING');
+      applyGuideProfile(data);
       setIsEditing(false);
       
       // Clear message after 3 seconds
@@ -1083,13 +1104,22 @@ const UserProfile = () => {
                   <div className="px-6 py-5 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-gray-900">Guide Profile</h3>
-                      {!isEditing && (
+                      {!isEditing && guideProfileState === 'found' && (
                         <button
                           onClick={() => setIsEditing(true)}
                           className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                         >
                           <Edit3 className="h-4 w-4 mr-2" />
-                          {guideData ? 'Edit Guide Profile' : 'Create Guide Profile'}
+                          Edit Guide Profile
+                        </button>
+                      )}
+                      {!isEditing && guideProfileState === 'missing' && (
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Create Guide Profile
                         </button>
                       )}
                     </div>
@@ -1415,13 +1445,24 @@ const UserProfile = () => {
                               </div>
                             )}
                           </>
-                        ) : (
+                        ) : guideProfileState === 'error' ? (
+                          <div className="text-center py-8">
+                            <AlertCircle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Could not load your guide profile</h3>
+                            <p className="text-gray-500 mb-4">{guideProfileError}</p>
+                          </div>
+                        ) : guideProfileState === 'missing' ? (
                           <div className="text-center py-8">
                             <Award className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">No Guide Profile Yet</h3>
                             <p className="text-gray-500 mb-4">
                               Create your guide profile to start offering tours and receiving bookings from travelers.
                             </p>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
+                            <p className="text-gray-500">Loading your guide profile...</p>
                           </div>
                         )}
                       </div>

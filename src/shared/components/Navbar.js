@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart } from 'lucide-react';
+import { Menu, X, User, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown, Shield, MessageCircle, ShoppingBag, Heart, LayoutDashboard } from 'lucide-react';
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
@@ -254,13 +254,23 @@ const Navbar = () => {
                           </span>
                         )}
                       </Link>
+                      {user?.role === 'GUIDE' && (
+                        <Link
+                          to="/guide/dashboard"
+                          className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                        >
+                          <LayoutDashboard className="h-4 w-4 mr-3" />
+                          Guide Dashboard
+                        </Link>
+                      )}
                       {user?.role === 'GUIDE' && FEATURE_TOURS_ENABLED && (
                         <>
-                      <Link
-                        to="/guide-tours"
-                        className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                      >
+                          <Link
+                            to="/guide/tours"
+                            className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
                             <MapPin className="h-4 w-4 mr-3" />
                             My Tours
                           </Link>
@@ -289,6 +299,30 @@ const Navbar = () => {
                           >
                             <Shield className="h-4 w-4 mr-3" />
                             Admin Dashboard
+                          </Link>
+                          <Link
+                            to="/admin/guides"
+                            className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <Shield className="h-4 w-4 mr-3" />
+                            Guide approvals
+                          </Link>
+                          <Link
+                            to="/admin/users"
+                            className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <Shield className="h-4 w-4 mr-3" />
+                            Users
+                          </Link>
+                          <Link
+                            to="/admin/bookings"
+                            className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <Shield className="h-4 w-4 mr-3" />
+                            Bookings
                           </Link>
                         </>
                       )}
@@ -439,6 +473,14 @@ const Navbar = () => {
                   {user?.role === 'GUIDE' && (
                     <>
                       <Link
+                        to="/guide/dashboard"
+                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <LayoutDashboard className="h-4 w-4 inline mr-2" />
+                        Guide Dashboard
+                      </Link>
+                      <Link
                         to="/guide-profile"
                         className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                         onClick={() => setIsOpen(false)}
@@ -449,7 +491,7 @@ const Navbar = () => {
                       {FEATURE_TOURS_ENABLED && (
                         <>
                           <Link
-                            to="/guide-tours"
+                            to="/guide/tours"
                             className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                             onClick={() => setIsOpen(false)}
                           >
@@ -483,6 +525,30 @@ const Navbar = () => {
                       >
                         <Shield className="h-4 w-4 inline mr-2" />
                         Admin Dashboard
+                      </Link>
+                      <Link
+                        to="/admin/guides"
+                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Shield className="h-4 w-4 inline mr-2" />
+                        Guide approvals
+                      </Link>
+                      <Link
+                        to="/admin/users"
+                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Shield className="h-4 w-4 inline mr-2" />
+                        Users
+                      </Link>
+                      <Link
+                        to="/admin/bookings"
+                        className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Shield className="h-4 w-4 inline mr-2" />
+                        Bookings
                       </Link>
                     </>
                   )}

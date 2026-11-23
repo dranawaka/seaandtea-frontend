@@ -113,14 +113,14 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
           {FEATURE_TOURS_ENABLED && (
             <>
               <Link
-                to="/guide-tours"
+                to="/create-tour"
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Tour
               </Link>
               <Link
-                to="/guide-tours"
+                to="/guide/tours"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -129,7 +129,7 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
             </>
           )}
           <Link
-            to="/guide-profile"
+            to="/profile"
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
             <Edit3 className="h-4 w-4 mr-2" />
@@ -144,7 +144,7 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-medium text-gray-900">Recent Tours</h3>
           <Link
-            to="/guide-tours"
+            to="/guide/tours"
             className="text-sm text-primary-600 hover:text-primary-500"
           >
             View all →
@@ -159,7 +159,7 @@ const GuideDashboard = ({ tours = [], stats = {} }) => {
               Get started by creating your first tour
             </p>
             <Link
-              to="/guide-tours"
+              to="/guide/tours"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <Plus className="h-4 w-4 mr-2" />

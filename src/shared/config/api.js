@@ -35,6 +35,7 @@ export const API_CONFIG = {
       // Guide-specific endpoints that actually exist
       PROFILE_EXISTS: '/guides/my-profile/exists', // Check if profile exists
       MY_PROFILE: '/guides/my-profile', // Get current user's guide profile
+      DASHBOARD: '/guides/dashboard',
       VERIFICATION: '/guides/verification',
       AVAILABILITY: '/guides/availability',
       SPECIALTIES: '/guides/specialties',
@@ -53,8 +54,10 @@ export const API_CONFIG = {
       USER_REMOVE: '/admin/users/:id',
       USER_RESET_REVIEWS: '/admin/users/:id/reviews/reset',
       STATISTICS: '/admin/statistics',
+      BOOKINGS: '/admin/bookings',
       UNVERIFIED_GUIDES: '/guides?verificationStatus=PENDING',
-      VERIFY_GUIDE: '/guides/:id/verify'
+      VERIFY_GUIDE: '/guides/:id/verify',
+      REJECT_GUIDE: '/guides/:id/reject'
     },
     BOOKINGS: {
       LIST: '/bookings',
@@ -361,6 +364,22 @@ export const getMyGuideProfile = async (token) => {
     logApiCall('GET', buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.PROFILE_EXISTS), null, null, error);
     throw error;
   }
+};
+
+export const getGuideDashboard = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.DASHBOARD);
+  const headers = getDefaultHeaders(true, token);
+  logApiCall('GET', url);
+  const response = await fetch(url, { method: 'GET', headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.message || `Failed to load guide dashboard: ${response.status}`);
+    error.status = response.status;
+    logApiCall('GET', url, null, null, error);
+    throw error;
+  }
+  logApiCall('GET', url, null, response);
+  return data;
 };
 
 // Get guide profile by ID without authentication (public endpoint)
@@ -803,6 +822,61 @@ export const createReview = async (body, token) => {
 };
 
 // --- Admin user (view / reset reviews) ---
+export const getAdminStatistics = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.STATISTICS);
+  const response = await fetch(url, { method: 'GET', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to load statistics: ${response.status}`);
+  }
+  return response.json();
+};
+
+export const getAdminGuides = async (token, verificationStatus) => {
+  let url = buildApiUrl(API_CONFIG.ENDPOINTS.GUIDES.LIST);
+  if (verificationStatus) {
+    url += `?verificationStatus=${encodeURIComponent(verificationStatus)}`;
+  }
+  const response = await fetch(url, { method: 'GET', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to load guides: ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data : (data?.content ?? []);
+};
+
+export const verifyGuideApi = async (guideId, token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.VERIFY_GUIDE, { id: guideId });
+  const response = await fetch(url, { method: 'POST', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || 'Failed to approve guide');
+  }
+  return response.json();
+};
+
+export const rejectGuideApi = async (guideId, token, reason) => {
+  const url = `${buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.REJECT_GUIDE, { id: guideId })}?reason=${encodeURIComponent(reason)}`;
+  const response = await fetch(url, { method: 'POST', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || 'Failed to reject guide');
+  }
+  return response.json();
+};
+
+export const listAdminBookings = async (token) => {
+  const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.BOOKINGS);
+  const response = await fetch(url, { method: 'GET', headers: getDefaultHeaders(true, token) });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to load bookings: ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
 export const getAdminUserById = async (userId, token) => {
   const url = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.USER_BY_ID, { id: userId });
   const headers = getDefaultHeaders(true, token);

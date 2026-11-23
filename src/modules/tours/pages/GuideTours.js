@@ -9,7 +9,7 @@ import { TOUR_CATEGORIES } from '../../../shared/data/destinations';
 
 const GuideTours = () => {
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [tours, setTours] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,17 +43,20 @@ const GuideTours = () => {
 
   // Load tours on component mount
   useEffect(() => {
-    if (user && isAuthenticated) {
+    if (user && isAuthenticated && (user.role === 'GUIDE' || user.role === 'ADMIN')) {
       loadTours();
+    } else if (user) {
+      setIsLoading(false);
     }
   }, [user, isAuthenticated]);
 
   // Redirect if not authenticated
   useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate]);
 
   const loadTours = async () => {
     try {
@@ -70,10 +73,26 @@ const GuideTours = () => {
       // Log the API call
       logApiCall('GET', url, null, response);
 
+      if (response.status === 404) {
+        setTours([]);
+        setMessage({ type: 'error', text: 'No guide profile is linked to this account.' });
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
-        // The API should return tours for the current user, no need to filter
-        setTours(data.content || data || []);
+        const list = data.content || data || [];
+        setTours((Array.isArray(list) ? list : []).map((tour) => ({
+          ...tour,
+          title: tour.title || '',
+          description: tour.description || '',
+          location: tour.location || tour.destination || tour.meetingPoint || '',
+          status: tour.status || (tour.isActive === false ? 'INACTIVE' : 'ACTIVE'),
+          duration: tour.duration || (tour.durationHours != null ? `${tour.durationHours} hours` : ''),
+          price: tour.price ?? tour.pricePerPerson ?? 0
+        })));
+      } else {
+        setMessage({ type: 'error', text: 'Failed to load tours' });
       }
     } catch (error) {
       console.error('Error loading tours:', error);
@@ -395,22 +414,46 @@ const GuideTours = () => {
   };
 
   const filteredTours = tours.filter(tour => {
-    const matchesSearch = tour.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tour.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tour.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = String(tour.title || '').toLowerCase();
+    const description = String(tour.description || '').toLowerCase();
+    const location = String(tour.location || tour.destination || tour.meetingPoint || '').toLowerCase();
+    const status = tour.status || (tour.isActive === false ? 'INACTIVE' : 'ACTIVE');
+    const matchesSearch = title.includes(searchTerm.toLowerCase()) ||
+                         description.includes(searchTerm.toLowerCase()) ||
+                         location.includes(searchTerm.toLowerCase());
     
     const matchesCategory = !filterCategory || tour.category === filterCategory;
-    const matchesStatus = !filterStatus || tour.status === filterStatus;
+    const matchesStatus = !filterStatus || status === filterStatus;
     
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  if (!user) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'GUIDE' && user.role !== 'ADMIN') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-16 px-4">
+        <div className="max-w-lg mx-auto bg-white shadow rounded-lg p-8 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-3">My Tours</h1>
+          <p className="text-gray-600 mb-6">
+            Tour management is available on guide accounts.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/guides')}
+            className="btn-primary"
+          >
+            Browse guides
+          </button>
         </div>
       </div>
     );
