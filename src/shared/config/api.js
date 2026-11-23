@@ -14,6 +14,8 @@ export const API_CONFIG = {
     AUTH: {
       LOGIN: '/auth/login',
       REGISTER: '/auth/register',
+      PROVIDERS: '/auth/providers',
+      OAUTH: '/auth/oauth/:provider',
       REFRESH: '/auth/refresh',
       LOGOUT: '/auth/logout'
     },

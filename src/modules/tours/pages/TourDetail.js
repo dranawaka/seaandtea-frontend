@@ -6,6 +6,7 @@ import { getTourById, getTourReviews, getReviewsRating, submitReview, listBookin
 import { useAuth } from '../../../shared/context/AuthContext';
 import { categoryLabel, formatDuration, formatLkr, formatUsd } from '../../../shared/data/destinations';
 import { preferSriLankanPhoto } from '../../../shared/utils/imageUtils';
+import ItineraryMap, { buildItineraryStops, itineraryUsesWalking } from '../components/ItineraryMap';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1566296314736-6eaac1ca0cb9?auto=format&fit=crop&w=1400&q=80';
 
@@ -507,6 +508,8 @@ const TourDetail = () => {
         { marker: 'End', title: tour.location, detail: 'The experience ends where your guide confirms' }
       ];
   const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+  const mapStops = buildItineraryStops(tour);
+  const walkingRoute = itineraryUsesWalking(tour);
 
   const bookPanel = !FEATURE_SITE_PAYMENTS ? (
     <div id="book-panel" className="card-modern p-5 scroll-mt-24">
@@ -700,6 +703,7 @@ const TourDetail = () => {
                   </li>
                 ))}
               </ol>
+              <ItineraryMap stops={mapStops} walking={walkingRoute} />
             </section>
 
             {guide && (

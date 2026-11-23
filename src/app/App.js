@@ -10,7 +10,7 @@ import { Guides, GuideProfileViewer } from '../modules/guides';
 import { Tours, GuideTours, CreateTour, TourDetail, Destination, Wishlist, Checkout } from '../modules/tours';
 import { Shop } from '../modules/shop';
 import { UserProfile } from '../modules/profile';
-import { Login, Register } from '../modules/auth';
+import { Login, Register, OAuthCallback } from '../modules/auth';
 import { AdminDashboard, AdminEditGuide, AdminEditProduct, AdminNewsEdit } from '../modules/admin';
 import { NewsPostDetail } from '../modules/news';
 import { SitemapGenerator } from '../modules/seo';
@@ -53,6 +53,7 @@ function App() {
               <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/auth/callback" element={<OAuthCallback />} />
             </Routes>
           </main>
           <Footer />
