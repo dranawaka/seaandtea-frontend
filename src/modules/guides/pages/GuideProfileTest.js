@@ -238,7 +238,9 @@ const GuideProfileTest = () => {
                 <div className="space-y-2 text-sm">
                   <p><span className="font-medium">ID:</span> {guideData.id}</p>
                   <p><span className="font-medium">Name:</span> {guideData.firstName} {guideData.lastName}</p>
-                  <p><span className="font-medium">Email:</span> {guideData.email}</p>
+                  {endpointType === 'my-profile' && (
+                    <p><span className="font-medium">Email:</span> {guideData.userEmail || guideData.email}</p>
+                  )}
                   <p><span className="font-medium">Status:</span> 
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                       guideData.verificationStatus === 'VERIFIED' 

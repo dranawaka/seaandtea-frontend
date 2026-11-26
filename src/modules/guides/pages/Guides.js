@@ -100,7 +100,6 @@ const Guides = () => {
             verified: guide.verificationStatus === 'VERIFIED',
             verificationStatus: guide.verificationStatus,
             isAvailable: guide.isAvailable || false,
-            userEmail: guide.userEmail || null,
             userId: guide.userId ?? guide.user?.id ?? null
           };
         });
@@ -152,7 +151,6 @@ const Guides = () => {
             verified: guide.verificationStatus === 'VERIFIED',
             verificationStatus: guide.verificationStatus,
             isAvailable: guide.isAvailable || false,
-            userEmail: guide.userEmail || null,
             userId: guide.userId ?? guide.user?.id ?? null
           };
         });
@@ -490,16 +488,10 @@ const Guides = () => {
                     </div>
                   </div>
                   
-                  {/* Contact Information */}
                   <div className="p-3 bg-primary-50 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-2">Contact Information:</div>
                     <div className="text-xs text-gray-700">
-                      <div className="flex items-center mb-1">
-                        <span className="font-medium">Email:</span>
-                        <span className="ml-2">{guide.userEmail || 'Not provided'}</span>
-                      </div>
                       <div className="flex items-center">
-                        <span className="font-medium">Response Time:</span>
+                        <span className="font-medium">Response time:</span>
                         <span className="ml-2">{guide.responseTime}</span>
                       </div>
                     </div>
@@ -530,7 +522,6 @@ const Guides = () => {
                             startConversation: {
                               partnerId: guide.userId,
                               partnerName: guide.name,
-                              partnerEmail: guide.userEmail || undefined,
                               partnerRole: 'GUIDE'
                             }
                           }

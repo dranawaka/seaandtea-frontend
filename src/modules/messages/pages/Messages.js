@@ -262,7 +262,9 @@ const Messages = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">{selectedPartner.partnerName}</p>
-                    <p className="text-xs text-gray-500">{selectedPartner.partnerEmail} · {selectedPartner.partnerRole}</p>
+                    <p className="text-xs text-gray-500">
+                      {[selectedPartner.partnerEmail, selectedPartner.partnerRole].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
                 </div>
 

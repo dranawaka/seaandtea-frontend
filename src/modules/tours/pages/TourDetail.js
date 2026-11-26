@@ -192,7 +192,6 @@ const TourDetail = () => {
           setGuide({
             id: embedded.id,
             userId: embedded.userId ?? embedded.user?.id,
-            email: embedded.email || embedded.userEmail || embedded.user?.email,
             name: [embedded.firstName, embedded.lastName].filter(Boolean).join(' ') || embedded.displayName || 'Local operator',
             image: embedded.profilePictureUrl,
             location: embedded.location || tourData.destination || 'Sri Lanka',
@@ -210,7 +209,6 @@ const TourDetail = () => {
             setGuide((current) => ({
               id: guideData.id ?? current?.id,
               userId: guideData.userId ?? guideData.user?.id ?? current?.userId,
-              email: guideData.userEmail || guideData.user?.email || current?.email,
               name: guideData.user?.firstName
                 ? `${guideData.user.firstName} ${guideData.user.lastName || ''}`.trim()
                 : guideData.displayName || current?.name || 'Local operator',
@@ -346,7 +344,6 @@ const TourDetail = () => {
         startConversation: {
           partnerId: guide.userId,
           partnerName: guide.name,
-          partnerEmail: guide.email || undefined,
           partnerRole: 'GUIDE'
         }
       }

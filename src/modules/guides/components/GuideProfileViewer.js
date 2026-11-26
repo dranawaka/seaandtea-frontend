@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, Star, CheckCircle, Mail, Phone, Calendar, MessageSquare, X, ArrowLeft, Briefcase } from 'lucide-react';
+import { MapPin, Star, CheckCircle, Phone, Calendar, MessageSquare, X, ArrowLeft, Briefcase } from 'lucide-react';
 import { getPublicGuideProfile, getGuideReviews, getReviewsRating, submitReview, listBookings } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { FEATURE_TOURS_ENABLED } from '../../../shared/config/features';
@@ -185,7 +185,6 @@ const GuideProfileViewer = () => {
   
   const firstName = guideData.firstName || guideData.userFirstName || '';
   const lastName = guideData.lastName || guideData.userLastName || '';
-  const email = guideData.email || guideData.userEmail || null;
   const phone = guideData.phone || guideData.userPhone || null;
   const location = guideData.location || guideData.userLocation || null;
   const guideUserId = guideData.userId ?? guideData.user?.id ?? null;
@@ -255,7 +254,6 @@ const GuideProfileViewer = () => {
                             startConversation: {
                               partnerId: guideUserId,
                               partnerName: guideDisplayName,
-                              partnerEmail: email || undefined,
                               partnerRole: 'GUIDE'
                             }
                           }
@@ -330,16 +328,10 @@ const GuideProfileViewer = () => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="card rounded-xl p-6">
             <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary-500" />
+              <MessageSquare className="h-4 w-4 text-primary-500" />
               Contact & location
             </h2>
             <ul className="space-y-3">
-              {email && (
-                <li className="flex items-center gap-3 text-gray-700">
-                  <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <span className="break-all">{email}</span>
-                </li>
-              )}
               {phone && (
                 <li className="flex items-center gap-3 text-gray-700">
                   <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -358,8 +350,8 @@ const GuideProfileViewer = () => {
                   <span>{new Date(guideData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </li>
               )}
-              {!email && !phone && !location && !guideData.dateOfBirth && (
-                <li className="text-gray-500 text-sm">Contact details not shared.</li>
+              {!phone && !location && !guideData.dateOfBirth && (
+                <li className="text-gray-500 text-sm">Message this guide to get in touch.</li>
               )}
             </ul>
           </div>
