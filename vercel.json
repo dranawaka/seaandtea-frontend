@@ -4,6 +4,26 @@
   "installCommand": "npm ci",
   "buildCommand": "CI=false NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
   "outputDirectory": "build",
+  "headers": [
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(favicon.ico|logo192.png|logo512.png)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

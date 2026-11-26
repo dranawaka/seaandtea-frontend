@@ -4,6 +4,7 @@ import { Menu, X, User, LogOut, UserCircle, Settings, Plus, MapPin, ChevronDown,
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { getUnreadCountApi } from '../config/api';
 import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../config/features';
 import { TOUR_CATEGORIES } from '../data/destinations';
@@ -14,6 +15,7 @@ const Navbar = () => {
   const [exploreOpen, setExploreOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const { isAuthenticated, user, token, logout } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const profileDropdownRef = useRef(null);
   const exploreRef = useRef(null);
@@ -64,16 +66,20 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center gap-3 py-2.5">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Sea & Tea home">
-            <img
-              src="/images/logo.png"
-              alt="Sea & Tea"
-              className="h-12 w-auto sm:h-14 dark:hidden"
-            />
-            <img
-              src="/images/logo-on-dark.png"
-              alt=""
-              className="hidden h-12 w-auto sm:h-14 dark:block"
-            />
+            <picture>
+              <source
+                srcSet={theme === 'dark' ? '/images/logo-on-dark.webp' : '/images/logo.webp'}
+                type="image/webp"
+              />
+              <img
+                src={theme === 'dark' ? '/images/logo-on-dark.png' : '/images/logo.png'}
+                alt="Sea & Tea"
+                width={650}
+                height={240}
+                decoding="async"
+                className="h-12 w-auto sm:h-14"
+              />
+            </picture>
           </Link>
 
           {FEATURE_TOURS_ENABLED && (

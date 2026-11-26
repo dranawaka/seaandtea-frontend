@@ -7,6 +7,7 @@ import {
 import SearchBar from '../../../shared/components/SearchBar';
 import ActivityCard from '../../../shared/components/ActivityCard';
 import ImageSlider from '../../../shared/components/ImageSlider';
+import OptimizedImage from '../../../shared/components/OptimizedImage';
 import { REGIONS, TOUR_CATEGORIES } from '../../../shared/data/destinations';
 import { searchTours, listPublishedNewsApi, getWishlist, addWishlist, removeWishlist } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -163,7 +164,13 @@ const Home = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {REGIONS.map((place) => (
               <Link key={place.slug} to={`/destinations/${place.slug}`} className="relative h-40 sm:h-52 rounded-2xl overflow-hidden group">
-                <img src={place.image} alt={place.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <OptimizedImage
+                  src={place.image}
+                  alt={place.name}
+                  sizes="(min-width: 640px) 33vw, 50vw"
+                  widths={[640, 960]}
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent" />
                 <span className="absolute bottom-3 left-3 right-3 text-white font-bold">{place.name}</span>
               </Link>

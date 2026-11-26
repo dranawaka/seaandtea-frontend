@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { getHomepageSliderApi } from '../config/api';
+import OptimizedImage from './OptimizedImage';
 
 const DEFAULT_SLIDES = [
   { id: 'sigiriya', image: '/images/slider/sigiriya.jpg', title: 'Sigiriya', subtitle: 'The rock fortress, seen from Pidurangala', description: 'Climb the Lion Rock, a UNESCO site in the Cultural Triangle.' },
@@ -21,6 +22,8 @@ const ImageSlider = ({ variant = 'card', children }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [apiSlides, setApiSlides] = useState([]);
+  const [prefetchNext, setPrefetchNext] = useState(false);
+  const [mountedIds, setMountedIds] = useState(() => new Set([DEFAULT_SLIDES[0].id]));
   const touchStart = useRef(null);
 
   useEffect(() => {
@@ -51,6 +54,36 @@ const ImageSlider = ({ variant = 'card', children }) => {
       }));
     return fromApi.length > 0 ? fromApi : DEFAULT_SLIDES;
   }, [apiSlides]);
+
+  const slidesIdentity = useRef(slides);
+
+  useEffect(() => {
+    if (slidesIdentity.current === slides) return;
+    slidesIdentity.current = slides;
+    setPrefetchNext(false);
+    setMountedIds(new Set(slides[0] ? [slides[0].id] : []));
+  }, [slides]);
+
+  useEffect(() => {
+    const ids = [];
+    const current = slides[currentSlide];
+    if (current) ids.push(current.id);
+    if (prefetchNext && slides.length > 0) {
+      const upcoming = slides[(currentSlide + 1) % slides.length];
+      if (upcoming) ids.push(upcoming.id);
+    }
+    setMountedIds((existing) => {
+      let changed = false;
+      const next = new Set(existing);
+      ids.forEach((id) => {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      });
+      return changed ? next : existing;
+    });
+  }, [slides, currentSlide, prefetchNext]);
 
   useEffect(() => {
     setCurrentSlide((index) => (slides.length === 0 ? 0 : index % slides.length));
@@ -122,11 +155,18 @@ const ImageSlider = ({ variant = 'card', children }) => {
             }`}
             aria-hidden={index !== currentSlide}
           >
-            <img
-              src={item.image}
-              alt={item.title || 'Sri Lanka'}
-              className={`w-full h-full object-cover ${hero ? 'object-[center_40%]' : ''}`}
-            />
+            {(index === currentSlide || mountedIds.has(item.id) || (prefetchNext && index === (currentSlide + 1) % slides.length)) && (
+              <OptimizedImage
+                src={item.image}
+                alt={index === currentSlide ? (item.title || 'Sri Lanka') : ''}
+                sizes="100vw"
+                priority={index === currentSlide}
+                loading="eager"
+                className={`w-full h-full object-cover ${hero ? 'object-[center_40%]' : ''}`}
+                onLoad={index === currentSlide ? () => setPrefetchNext(true) : undefined}
+                onError={index === currentSlide ? () => setPrefetchNext(true) : undefined}
+              />
+            )}
           </div>
         ))}
         <div

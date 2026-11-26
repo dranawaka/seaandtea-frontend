@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ActivityCard from '../../../shared/components/ActivityCard';
+import OptimizedImage from '../../../shared/components/OptimizedImage';
 import { destinationBySlug } from '../../../shared/data/destinations';
 import { addWishlist, getWishlist, removeWishlist, searchTours } from '../../../shared/config/api';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -75,7 +76,13 @@ const Destination = () => {
   return (
     <div>
       <section className="relative h-72">
-        <img src={place.image} alt={place.name} className="h-full w-full object-cover" />
+        <OptimizedImage
+          src={place.image}
+          alt={place.name}
+          sizes="100vw"
+          priority
+          className="h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 flex items-end">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 text-white">

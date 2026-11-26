@@ -40,7 +40,7 @@ export const PLACEHOLDER_IMAGES = {
 /** The sample catalog used a photo of the Taj Mahal for Sigiriya. Show the rock fortress instead. */
 export const preferSriLankanPhoto = (url) => (
   typeof url === 'string' && url.includes('photo-1548013146')
-    ? '/images/slider/sigiriya.jpg'
+    ? '/images/slider/sigiriya-640.webp'
     : url
 );
 
