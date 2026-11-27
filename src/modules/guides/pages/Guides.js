@@ -37,26 +37,29 @@ const Guides = () => {
       // Use the new paginated endpoint for verified guides
       const response = await getVerifiedGuidesPaginated(currentPage, pageSize);
       console.log('Paginated guides response:', response);
-      
+
+      const isPage = response && Array.isArray(response.content);
+      const guideList = isPage ? response.content : (Array.isArray(response) ? response : null);
+      if (!guideList) {
+        throw new Error('Guides response was not a list');
+      }
+
       // Debug: Log sample guide data to see available fields
-      if (response.content && response.content.length > 0) {
-        console.log('Sample guide data:', response.content[0]);
-        console.log('Available fields:', Object.keys(response.content[0]));
+      if (guideList.length > 0) {
+        console.log('Sample guide data:', guideList[0]);
+        console.log('Available fields:', Object.keys(guideList[0]));
         
         // Check if user object exists and what fields it has
-        if (response.content[0].user) {
-          console.log('User object:', response.content[0].user);
-          console.log('User fields:', Object.keys(response.content[0].user));
+        if (guideList[0].user) {
+          console.log('User object:', guideList[0].user);
+          console.log('User fields:', Object.keys(guideList[0].user));
         }
       }
-      
-      // Extract pagination info
-      if (response.content) {
-        setTotalPages(response.totalPages || 0);
-        setTotalElements(response.totalElements || 0);
-        
-        // Transform the backend data to match our frontend structure
-        const transformedGuides = response.content.map(guide => {
+
+      setTotalPages(isPage ? (response.totalPages || 0) : 1);
+      setTotalElements(isPage ? (response.totalElements || guideList.length) : guideList.length);
+
+      const transformedGuides = guideList.map(guide => {
           // Extract profile picture from various possible field names
           const profilePicture = guide.profileImageUrl || 
                                 guide.profilePictureUrl || 
@@ -68,7 +71,7 @@ const Guides = () => {
                                 null;
           
           // Debug: Log profile picture info for first guide
-          if (guide.id === response.content[0]?.id) {
+          if (guide.id === guideList[0]?.id) {
             console.log('Guide profile picture debug:', {
               guideId: guide.id,
               guideName: guide.fullName || `${guide.userFirstName || ''} ${guide.userLastName || ''}`.trim(),
@@ -93,8 +96,8 @@ const Guides = () => {
             tours: guide.totalTours || 0,
             hourlyRate: guide.hourlyRate || 0,
             dailyRate: guide.dailyRate || 0,
-            languages: guide.languages || [],
-            specialties: guide.specialties || [],
+            languages: Array.isArray(guide.languages) ? guide.languages : [],
+            specialties: Array.isArray(guide.specialties) ? guide.specialties : [],
             bio: guide.bio || 'No bio available',
             responseTime: guide.responseTimeHours ? `Within ${guide.responseTimeHours} hours` : 'Within 24 hours',
             verified: guide.verificationStatus === 'VERIFIED',
@@ -104,61 +107,7 @@ const Guides = () => {
           };
         });
 
-        setGuides(transformedGuides);
-      } else {
-        // Fallback for non-paginated response
-        const transformedGuides = response.map(guide => {
-          // Extract profile picture from various possible field names
-          const profilePicture = guide.profileImageUrl || 
-                                guide.profilePictureUrl || 
-                                guide.userProfilePictureUrl ||
-                                guide.user?.profilePictureUrl || 
-                                guide.user?.profileImageUrl ||
-                                guide.imageUrl || 
-                                guide.image ||
-                                null;
-          
-          // Debug: Log profile picture info for first guide
-          if (guide.id === response[0]?.id) {
-            console.log('Guide profile picture debug:', {
-              guideId: guide.id,
-              guideName: guide.fullName || `${guide.userFirstName || ''} ${guide.userLastName || ''}`.trim(),
-              profileImageUrl: guide.profileImageUrl,
-              profilePictureUrl: guide.profilePictureUrl,
-              userProfilePictureUrl: guide.userProfilePictureUrl,
-              userProfilePictureUrlNested: guide.user?.profilePictureUrl,
-              userProfileImageUrl: guide.user?.profileImageUrl,
-              imageUrl: guide.imageUrl,
-              image: guide.image,
-              finalProfilePicture: profilePicture
-            });
-          }
-          
-          return {
-            id: guide.id,
-            name: guide.fullName || `${guide.userFirstName || ''} ${guide.userLastName || ''}`.trim() || 'Guide Name',
-            image: profilePicture || PLACEHOLDER_IMAGES.GUIDE,
-            location: guide.location || 'Location not specified',
-            rating: guide.averageRating || 0,
-            reviews: guide.totalReviews || 0,
-            tours: guide.totalTours || 0,
-            hourlyRate: guide.hourlyRate || 0,
-            dailyRate: guide.dailyRate || 0,
-            languages: guide.languages || [],
-            specialties: guide.specialties || [],
-            bio: guide.bio || 'No bio available',
-            responseTime: guide.responseTimeHours ? `Within ${guide.responseTimeHours} hours` : 'Within 24 hours',
-            verified: guide.verificationStatus === 'VERIFIED',
-            verificationStatus: guide.verificationStatus,
-            isAvailable: guide.isAvailable || false,
-            userId: guide.userId ?? guide.user?.id ?? null
-          };
-        });
-
-        setGuides(transformedGuides);
-        setTotalPages(1);
-        setTotalElements(transformedGuides.length);
-      }
+      setGuides(transformedGuides);
     } catch (error) {
       console.error('Error loading guides:', error);
       setError(error.message);
