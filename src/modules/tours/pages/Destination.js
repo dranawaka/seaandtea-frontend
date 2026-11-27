@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ActivityCard from '../../../shared/components/ActivityCard';
 import OptimizedImage from '../../../shared/components/OptimizedImage';
 import { destinationBySlug } from '../../../shared/data/destinations';
-import { addWishlist, getWishlist, removeWishlist, searchTours } from '../../../shared/config/api';
+import { addWishlist, getWishlist, listThingsDestinations, removeWishlist, searchTours } from '../../../shared/config/api';
+import { FEATURE_THINGS_TO_DO_ENABLED } from '../../../shared/config/features';
 import { useAuth } from '../../../shared/context/AuthContext';
 
 const Destination = () => {
@@ -14,6 +15,7 @@ const Destination = () => {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(new Set());
+  const [hasThings, setHasThings] = useState(false);
 
   useEffect(() => {
     if (!place) return undefined;
@@ -46,6 +48,19 @@ const Destination = () => {
     }
     getWishlist(token).then((items) => setSaved(new Set((items || []).map((item) => item.id)))).catch(() => setSaved(new Set()));
   }, [token]);
+
+  useEffect(() => {
+    if (!FEATURE_THINGS_TO_DO_ENABLED || !slug) return undefined;
+    let cancelled = false;
+    listThingsDestinations()
+      .then((items) => {
+        if (!cancelled) setHasThings((items || []).some((item) => item.slug === slug));
+      })
+      .catch(() => {
+        if (!cancelled) setHasThings(false);
+      });
+    return () => { cancelled = true; };
+  }, [slug]);
 
   const toggleSave = async (tourId) => {
     if (!token) {
@@ -103,6 +118,14 @@ const Destination = () => {
               <ActivityCard key={tour.id} tour={tour} saved={saved.has(tour.id)} onToggleSave={toggleSave} />
             ))}
           </div>
+        )}
+        {hasThings && (
+          <section className="mt-10 rounded-xl border border-gray-200 bg-white p-6">
+            <h2 className="text-2xl font-bold">Events, activities and restaurants in {place.name}</h2>
+            <Link to={`/things-to-do/in/${slug}`} className="mt-3 inline-flex font-semibold text-primary-800 underline">
+              Browse the catalogue
+            </Link>
+          </section>
         )}
       </section>
     </div>

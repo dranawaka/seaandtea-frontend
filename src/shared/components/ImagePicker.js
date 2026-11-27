@@ -26,6 +26,7 @@ const ImagePicker = ({
   className = '',
   disabled = false,
   tourId = null,
+  onUpload = null,
   onTourUpdated = null
 }) => {
   const [urlInput, setUrlInput] = useState('');
@@ -82,8 +83,8 @@ const ImagePicker = ({
 
   const uploadFiles = async (files) => {
     if (!enableUpload || !canAdd) return;
-    if (!tourId) {
-      setUploadError('Save the tour first to upload images, or add image URLs.');
+    if (!tourId && !onUpload) {
+      setUploadError('Save the item first to upload images, or add image URLs.');
       return;
     }
     const fileList = Array.from(files || []).filter(f => f && UPLOAD_CONSTRAINTS.ALLOWED_TYPES.includes(f.type));
@@ -95,7 +96,6 @@ const ImagePicker = ({
     setUploadError('');
     setUploading(true);
     const currentUrls = [...urls];
-    const primaryIdx = primaryIndex ?? 0;
     let lastTour = null;
 
     for (let i = 0; i < fileList.length; i++) {
@@ -106,11 +106,17 @@ const ImagePicker = ({
         break;
       }
       try {
-        const isPrimary = currentUrls.length === 0 && i === 0;
-        lastTour = await uploadTourImageApi(tourId, file, { isPrimary }, null);
-        const images = lastTour?.images || [];
-        const newUrl = images.length ? (images[images.length - 1].imageUrl || images[images.length - 1].url) : null;
-        if (newUrl) currentUrls.push(newUrl);
+        if (onUpload) {
+          const uploaded = await onUpload(file);
+          const newUrl = uploaded?.imageUrl || uploaded;
+          if (newUrl) currentUrls.push(newUrl);
+        } else {
+          const isPrimary = currentUrls.length === 0 && i === 0;
+          lastTour = await uploadTourImageApi(tourId, file, { isPrimary }, null);
+          const images = lastTour?.images || [];
+          const newUrl = images.length ? (images[images.length - 1].imageUrl || images[images.length - 1].url) : null;
+          if (newUrl) currentUrls.push(newUrl);
+        }
         if (currentUrls.length >= maxFiles) break;
       } catch (e) {
         setUploadError(e.message || 'Upload failed');

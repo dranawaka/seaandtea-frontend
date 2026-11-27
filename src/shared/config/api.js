@@ -109,6 +109,35 @@ export const API_CONFIG = {
       MARK_READ: '/messages/conversations/:partnerId/read',
       UNREAD_COUNT: '/messages/unread-count'
     },
+    THINGS_TO_DO: {
+      SUMMARY: '/things-to-do/summary',
+      SITEMAP: '/things-to-do/sitemap',
+      ACTIVITIES: '/activities',
+      ACTIVITY: '/activities/:slug',
+      ACTIVITY_TOURS: '/activities/:slug/tours',
+      EVENTS: '/events',
+      EVENT: '/events/:slug',
+      EVENT_TOURS: '/events/:slug/tours',
+      RESTAURANTS: '/restaurants',
+      RESTAURANT: '/restaurants/:slug',
+      RESTAURANT_TOURS: '/restaurants/:slug/tours',
+      DESTINATIONS: '/destinations',
+      DESTINATION_BUNDLE: '/destinations/:slug/things-to-do',
+      SUGGEST: '/things-to-do/suggestions',
+      MY_SUGGESTIONS: '/things-to-do/suggestions/mine',
+      TOUR_LINKS: '/tours/:id/things-to-do',
+      ADMIN_ACTIVITIES: '/admin/activities',
+      ADMIN_ACTIVITY: '/admin/activities/:id',
+      ADMIN_EVENTS: '/admin/events',
+      ADMIN_EVENT: '/admin/events/:id',
+      ADMIN_EVENT_OCCURRENCES: '/admin/events/:id/occurrences',
+      ADMIN_OCCURRENCE: '/admin/event-occurrences/:id',
+      ADMIN_RESTAURANTS: '/admin/restaurants',
+      ADMIN_RESTAURANT: '/admin/restaurants/:id',
+      ADMIN_STATUS: '/admin/:type/:id/status',
+      ADMIN_PENDING: '/admin/things-to-do/pending',
+      UPLOAD_IMAGE: '/upload/things-to-do/:type/:id/image'
+    },
     NEWS: {
       LIST: '/news',
       DETAIL: '/news/:id',
@@ -1512,4 +1541,186 @@ export const deleteNewsPostApi = async (id, token) => {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.message || `Failed to delete post: ${response.status}`);
   }
+};
+
+const fillPath = (template, params = {}) => {
+  let path = template;
+  Object.keys(params).forEach((key) => {
+    path = path.replace(`:${key}`, encodeURIComponent(params[key]));
+  });
+  return path;
+};
+
+const appendQuery = (query) => {
+  const params = new URLSearchParams();
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === false) return;
+    const values = Array.isArray(value) ? value : [value];
+    values.forEach((item) => {
+      if (item !== undefined && item !== null && item !== '') params.append(key, item);
+    });
+  });
+  const text = params.toString();
+  return text ? `?${text}` : '';
+};
+
+const thingsRequest = async (path, options = {}) => {
+  const { method = 'GET', token, body, signal, query, nullOn404 = false, formData } = options;
+  const url = `${API_CONFIG.BASE_URL}${path}${appendQuery(query)}`;
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, API_CONFIG.TIMEOUT);
+  const onAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', onAbort);
+  }
+  try {
+    const headers = {};
+    if (!formData && body !== undefined) headers['Content-Type'] = 'application/json';
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: formData || (body !== undefined ? JSON.stringify(body) : undefined),
+      signal: controller.signal
+    });
+    if (response.status === 404 && nullOn404) return null;
+    if (!response.ok) {
+      let message = 'Something went wrong. Please try again.';
+      try {
+        const data = await response.json();
+        if (data && data.message) message = data.message;
+      } catch (parseError) {
+        message = 'Something went wrong. Please try again.';
+      }
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
+    }
+    if (response.status === 204) return null;
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      if (!timedOut) {
+        const aborted = new Error('Aborted');
+        aborted.name = 'AbortError';
+        throw aborted;
+      }
+      const timeout = new Error('The request timed out');
+      timeout.status = 0;
+      throw timeout;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', onAbort);
+  }
+};
+
+const thingEndpoints = API_CONFIG.ENDPOINTS.THINGS_TO_DO;
+const adminCollection = {
+  activities: thingEndpoints.ADMIN_ACTIVITIES,
+  events: thingEndpoints.ADMIN_EVENTS,
+  restaurants: thingEndpoints.ADMIN_RESTAURANTS
+};
+const adminItem = {
+  activities: thingEndpoints.ADMIN_ACTIVITY,
+  events: thingEndpoints.ADMIN_EVENT,
+  restaurants: thingEndpoints.ADMIN_RESTAURANT
+};
+
+export const getThingsToDoSummary = (params = {}, signal) =>
+  thingsRequest(thingEndpoints.SUMMARY, { query: params, signal });
+
+export const listActivities = (params = {}, signal) =>
+  thingsRequest(thingEndpoints.ACTIVITIES, { query: params, signal });
+
+export const getActivity = (slug, params = {}, signal) =>
+  thingsRequest(fillPath(thingEndpoints.ACTIVITY, { slug }), { query: params, signal, nullOn404: true });
+
+export const getActivityTours = (slug, params = {}, signal) =>
+  thingsRequest(fillPath(thingEndpoints.ACTIVITY_TOURS, { slug }), { query: params, signal });
+
+export const listEvents = (params = {}, signal) =>
+  thingsRequest(thingEndpoints.EVENTS, { query: params, signal });
+
+export const getEvent = (slug, signal) =>
+  thingsRequest(fillPath(thingEndpoints.EVENT, { slug }), { signal, nullOn404: true });
+
+export const getEventTours = (slug, params = {}, signal) =>
+  thingsRequest(fillPath(thingEndpoints.EVENT_TOURS, { slug }), { query: params, signal });
+
+export const listRestaurants = (params = {}, signal) =>
+  thingsRequest(thingEndpoints.RESTAURANTS, { query: params, signal });
+
+export const getRestaurant = (slug, signal) =>
+  thingsRequest(fillPath(thingEndpoints.RESTAURANT, { slug }), { signal, nullOn404: true });
+
+export const getRestaurantTours = (slug, params = {}, signal) =>
+  thingsRequest(fillPath(thingEndpoints.RESTAURANT_TOURS, { slug }), { query: params, signal });
+
+export const listThingsDestinations = (signal) =>
+  thingsRequest(thingEndpoints.DESTINATIONS, { signal });
+
+export const getDestinationBundle = (slug, signal) =>
+  thingsRequest(fillPath(thingEndpoints.DESTINATION_BUNDLE, { slug }), { signal, nullOn404: true });
+
+export const suggestThing = (body, token) =>
+  thingsRequest(thingEndpoints.SUGGEST, { method: 'POST', body, token });
+
+export const setTourThingLinks = (tourId, links, token) =>
+  thingsRequest(fillPath(thingEndpoints.TOUR_LINKS, { id: tourId }), { method: 'PUT', body: links, token });
+
+export const adminListThings = (type, params, token) =>
+  thingsRequest(adminCollection[type], { query: params, token });
+
+export const adminGetThing = (type, id, token) =>
+  thingsRequest(fillPath(adminItem[type], { id }), { token, nullOn404: true });
+
+export const adminCreateThing = (type, body, token) =>
+  thingsRequest(adminCollection[type], { method: 'POST', body, token });
+
+export const adminUpdateThing = (type, id, body, token) =>
+  thingsRequest(fillPath(adminItem[type], { id }), { method: 'PUT', body, token });
+
+export const adminDeleteThing = (type, id, token) =>
+  thingsRequest(fillPath(adminItem[type], { id }), { method: 'DELETE', token });
+
+export const adminSetThingStatus = (type, id, body, token) =>
+  thingsRequest(fillPath(thingEndpoints.ADMIN_STATUS, { type, id }), { method: 'PATCH', body, token });
+
+export const adminPendingThings = (token) =>
+  thingsRequest(thingEndpoints.ADMIN_PENDING, { token });
+
+export const adminSaveOccurrence = (eventId, occurrence, token) => {
+  if (occurrence && occurrence.id) {
+    return thingsRequest(fillPath(thingEndpoints.ADMIN_OCCURRENCE, { id: occurrence.id }), {
+      method: 'PUT', body: occurrence, token
+    });
+  }
+  return thingsRequest(fillPath(thingEndpoints.ADMIN_EVENT_OCCURRENCES, { id: eventId }), {
+    method: 'POST', body: occurrence, token
+  });
+};
+
+export const adminDeleteOccurrence = (id, token) =>
+  thingsRequest(fillPath(thingEndpoints.ADMIN_OCCURRENCE, { id }), { method: 'DELETE', token });
+
+export const uploadThingImage = async (type, id, file, token) => {
+  const problem = validateUploadFile(file);
+  if (problem) {
+    const error = new Error(problem);
+    error.status = 400;
+    throw error;
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  return thingsRequest(fillPath(thingEndpoints.UPLOAD_IMAGE, { type, id }), {
+    method: 'POST', token, formData
+  });
 };

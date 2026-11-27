@@ -11,3 +11,6 @@ export const FEATURE_TOURS_ENABLED =
 
 export const FEATURE_SITE_PAYMENTS =
   process.env.REACT_APP_FEATURE_SITE_PAYMENTS === 'true';
+
+export const FEATURE_THINGS_TO_DO_ENABLED =
+  process.env.REACT_APP_FEATURE_THINGS_TO_DO_ENABLED !== 'false';

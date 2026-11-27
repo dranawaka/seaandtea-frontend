@@ -50,6 +50,27 @@ export const TOUR_CATEGORIES = [
   { value: 'FAMILY_TOURS', label: 'Family' }
 ];
 
+export const THINGS_TO_DO_CATEGORIES = [
+  { slug: 'surfing', label: 'Surfing', icon: 'surfing' },
+  { slug: 'whale-watching', label: 'Whale watching', icon: 'whale-watching' },
+  { slug: 'safari', label: 'Safari', icon: 'safari' },
+  { slug: 'hiking', label: 'Hiking', icon: 'hiking' },
+  { slug: 'diving', label: 'Diving', icon: 'diving' },
+  { slug: 'tea', label: 'Tea', icon: 'tea' },
+  { slug: 'kitesurfing', label: 'Kitesurfing', icon: 'kitesurfing' }
+];
+
+/** UI hints only. Tour matching stays on the API. */
+export const categoryToTourCategories = {
+  surfing: ['BEACH_TOURS'],
+  'whale-watching': ['BEACH_TOURS', 'WILDLIFE_TOURS'],
+  safari: ['WILDLIFE_TOURS'],
+  hiking: ['ADVENTURE_TOURS', 'SCENIC_TOURS'],
+  diving: ['BEACH_TOURS', 'ADVENTURE_TOURS'],
+  tea: ['TEA_TOURS'],
+  kitesurfing: ['BEACH_TOURS', 'ADVENTURE_TOURS']
+};
+
 export function destinationBySlug(slug) {
   return REGIONS.find((item) => item.slug === slug)
     || DESTINATIONS.find((item) => item.slug === slug)

@@ -1,0 +1,9 @@
+export { default as ThingsToDoHub } from './pages/ThingsToDoHub';
+export { default as ActivitiesList } from './pages/ActivitiesList';
+export { default as ActivityCategory } from './pages/ActivityCategory';
+export { default as ActivityDetail } from './pages/ActivityDetail';
+export { default as EventsList } from './pages/EventsList';
+export { default as EventDetail } from './pages/EventDetail';
+export { default as RestaurantsList } from './pages/RestaurantsList';
+export { default as RestaurantDetail } from './pages/RestaurantDetail';
+export { default as ThingsInDestination } from './pages/ThingsInDestination';

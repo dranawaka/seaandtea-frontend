@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
-import { FEATURE_TOURS_ENABLED } from '../config/features';
+import { FEATURE_TOURS_ENABLED, FEATURE_THINGS_TO_DO_ENABLED } from '../config/features';
 
 const Footer = () => {
   const year = new Date().getFullYear();
@@ -56,6 +56,9 @@ const Footer = () => {
               <li><Link to="/guides" className="text-primary-100 hover:text-white">Guides</Link></li>
               {FEATURE_TOURS_ENABLED && (
                 <li><Link to="/tours" className="text-primary-100 hover:text-white">Experiences</Link></li>
+              )}
+              {FEATURE_THINGS_TO_DO_ENABLED && (
+                <li><Link to="/things-to-do" className="text-primary-100 hover:text-white">Things to do</Link></li>
               )}
               <li><Link to="/shop" className="text-primary-100 hover:text-white">Shop</Link></li>
               {FEATURE_TOURS_ENABLED && (

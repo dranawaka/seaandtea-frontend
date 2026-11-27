@@ -6,7 +6,7 @@ import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getUnreadCountApi } from '../config/api';
-import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS } from '../config/features';
+import { FEATURE_TOURS_ENABLED, FEATURE_SITE_PAYMENTS, FEATURE_THINGS_TO_DO_ENABLED } from '../config/features';
 import { TOUR_CATEGORIES } from '../data/destinations';
 
 const Navbar = () => {
@@ -35,6 +35,7 @@ const Navbar = () => {
 
   const navigation = [
     { name: 'Guides', href: '/guides' },
+    ...(FEATURE_THINGS_TO_DO_ENABLED ? [{ name: 'Things to do', href: '/things-to-do' }] : []),
     { name: 'Shop', href: '/shop' },
   ];
 
@@ -330,6 +331,16 @@ const Navbar = () => {
                             <Shield className="h-4 w-4 mr-3" />
                             Bookings
                           </Link>
+                          {FEATURE_THINGS_TO_DO_ENABLED && (
+                            <Link
+                              to="/admin/things-to-do"
+                              className="flex items-center px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 transition-all duration-200 rounded-lg mx-2"
+                              onClick={() => setIsProfileDropdownOpen(false)}
+                            >
+                              <Shield className="h-4 w-4 mr-3" />
+                              Things to do
+                            </Link>
+                          )}
                         </>
                       )}
                     </div>
@@ -556,6 +567,16 @@ const Navbar = () => {
                         <Shield className="h-4 w-4 inline mr-2" />
                         Bookings
                       </Link>
+                      {FEATURE_THINGS_TO_DO_ENABLED && (
+                        <Link
+                          to="/admin/things-to-do"
+                          className="text-gray-700 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Shield className="h-4 w-4 inline mr-2" />
+                          Things to do
+                        </Link>
+                      )}
                     </>
                   )}
                   

@@ -5,7 +5,8 @@ User-agent: *
 Allow: /
 
 # Sitemap location - tells search engines where to find our sitemap
-Sitemap: https://seaandtea.com/sitemap.xml
+Sitemap: https://www.seaandtea.com/sitemap.xml
+Sitemap: https://www.seaandtea.com/sitemap-things-to-do.xml
 
 # Crawl-delay for respectful crawling (1 second between requests)
 Crawl-delay: 1

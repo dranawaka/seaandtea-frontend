@@ -1,7 +1,7 @@
 // Sitemap generator utility for Sea & Tea Tours
 // This generates a dynamic sitemap based on your routes and content
 
-const BASE_URL = process.env.REACT_APP_BASE_URL || 'https://seaandtea.com';
+const BASE_URL = process.env.REACT_APP_BASE_URL || 'https://www.seaandtea.com';
 
 // Static routes that should always be included
 const STATIC_ROUTES = [
@@ -37,6 +37,30 @@ const STATIC_ROUTES = [
   },
   {
     url: '/shop',
+    changefreq: 'weekly',
+    priority: '0.8',
+    lastmod: new Date().toISOString().split('T')[0]
+  },
+  {
+    url: '/things-to-do',
+    changefreq: 'weekly',
+    priority: '0.8',
+    lastmod: new Date().toISOString().split('T')[0]
+  },
+  {
+    url: '/things-to-do/activities',
+    changefreq: 'weekly',
+    priority: '0.8',
+    lastmod: new Date().toISOString().split('T')[0]
+  },
+  {
+    url: '/things-to-do/events',
+    changefreq: 'weekly',
+    priority: '0.8',
+    lastmod: new Date().toISOString().split('T')[0]
+  },
+  {
+    url: '/things-to-do/restaurants',
     changefreq: 'weekly',
     priority: '0.8',
     lastmod: new Date().toISOString().split('T')[0]

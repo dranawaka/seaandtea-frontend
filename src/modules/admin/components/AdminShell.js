@@ -8,6 +8,7 @@ const LINKS = [
   { to: '/admin/guides', label: 'Guides' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/bookings', label: 'Bookings' },
+  { to: '/admin/things-to-do', label: 'Things to do' },
 ];
 
 const AdminShell = ({ title, description, children }) => {

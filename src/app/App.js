@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { FEATURE_TOURS_ENABLED } from '../shared/config/features';
+import { FEATURE_TOURS_ENABLED, FEATURE_THINGS_TO_DO_ENABLED } from '../shared/config/features';
 import { AuthProvider } from '../shared/context/AuthContext';
 import { ThemeProvider } from '../shared/context/ThemeContext';
 import Navbar from '../shared/components/Navbar';
@@ -15,7 +15,23 @@ import { AdminDashboard, AdminEditGuide, AdminEditProduct, AdminNewsEdit, AdminG
 import { NewsPostDetail } from '../modules/news';
 import { SitemapGenerator } from '../modules/seo';
 import { Messages } from '../modules/messages';
+import {
+  ActivitiesList,
+  ActivityCategory,
+  ActivityDetail,
+  EventDetail,
+  EventsList,
+  RestaurantDetail,
+  RestaurantsList,
+  ThingsInDestination,
+  ThingsToDoHub
+} from '../modules/thingstodo';
 import './App.css';
+
+const AdminThingsToDo = lazy(() => import('../modules/admin/pages/AdminThingsToDo'));
+const AdminThingEdit = lazy(() => import('../modules/admin/pages/AdminThingEdit'));
+
+const thing = (element) => (FEATURE_THINGS_TO_DO_ENABLED ? element : <Navigate to="/" replace />);
 
 function App() {
   return (
@@ -54,6 +70,18 @@ function App() {
               <Route path="/admin/news/new" element={<AdminNewsEdit />} />
               <Route path="/admin/news/:id/edit" element={<AdminNewsEdit />} />
               <Route path="/news/:id" element={<NewsPostDetail />} />
+              <Route path="/things-to-do" element={thing(<ThingsToDoHub />)} />
+              <Route path="/things-to-do/activities" element={thing(<ActivitiesList />)} />
+              <Route path="/things-to-do/activities/category/:category" element={thing(<ActivityCategory />)} />
+              <Route path="/things-to-do/activities/:slug" element={thing(<ActivityDetail />)} />
+              <Route path="/things-to-do/events" element={thing(<EventsList />)} />
+              <Route path="/things-to-do/events/:slug" element={thing(<EventDetail />)} />
+              <Route path="/things-to-do/restaurants" element={thing(<RestaurantsList />)} />
+              <Route path="/things-to-do/restaurants/:slug" element={thing(<RestaurantDetail />)} />
+              <Route path="/things-to-do/in/:destinationSlug" element={thing(<ThingsInDestination />)} />
+              <Route path="/admin/things-to-do" element={thing(<Suspense fallback={<p className="p-8">Loading…</p>}><AdminThingsToDo /></Suspense>)} />
+              <Route path="/admin/things-to-do/:type/new" element={thing(<Suspense fallback={<p className="p-8">Loading…</p>}><AdminThingEdit /></Suspense>)} />
+              <Route path="/admin/things-to-do/:type/:id/edit" element={thing(<Suspense fallback={<p className="p-8">Loading…</p>}><AdminThingEdit /></Suspense>)} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/sitemap-generator" element={<SitemapGenerator />} />
               <Route path="/login" element={<Login />} />
