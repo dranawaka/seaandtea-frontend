@@ -34,7 +34,6 @@ const Navbar = () => {
   }, [isAuthenticated, token]);
 
   const navigation = [
-    { name: 'Guides', href: '/guides' },
     ...(FEATURE_THINGS_TO_DO_ENABLED ? [{ name: 'Things to do', href: '/things-to-do' }] : []),
     { name: 'Shop', href: '/shop' },
   ];
